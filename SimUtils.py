@@ -1,124 +1,105 @@
-
-# General imports
-import numpy as np
-import os
-
-# Tudatpy imports
-from tudatpy.data import save2txt
-from tudatpy.kernel import constants
-from tudatpy.kernel.interface import spice_interface
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.numerical_simulation import propagation_setup
-from tudatpy.kernel.numerical_simulation import environment
-from tudatpy.kernel import numerical_simulation
-from tudatpy.kernel.math import interpolators
-import tudatpy.util as util
 
-# Problem-specific imports
-import CapsuleEntryUtilities as Util
-from CapsuleEntryProblem import ShapeOptimizationProblem
+class SimSettings:
+    def __init__(self):
+        self.simulation_start_epoch = 0.0  # s
+        self.global_frame_origin = 'Earth'
+        self.global_frame_orientation = 'J2000'
+        self.max_simtime = 10.0*60.0            # 10 minutes
+        self.bodies_to_propagate = ['Chaser']
+        self.central_bodies = ['Earth']
+        self.integrator_stepsize = 0.1
+        self.propagator = "Encke"
+        self.bodies = self.get_environment_settings()
+        self.acceleration_models = self.get_acceleration_settings()
+        self.integrator_settings = self.get_integrator_settings()
+        self.dep_vars_to_save = self.get_dependent_variables_to_save()
+        self.termination_settings = self.get_termination_settings()
 
-spice_interface.load_standard_kernels()
+    def get_environment_settings(self):
+        bodies_to_create = ['Earth']
 
-current_dir = os.path.dirname(__file__)
+        body_settings = environment_setup.get_default_body_settings(
+            bodies_to_create,
+            self.global_frame_origin,
+            self.global_frame_orientation)
 
-###########################################################################
-# DEFINE SIMULATION SETTINGS ##############################################
-###########################################################################
+        body_settings.get('Earth').rotation_model_settings = environment_setup.rotation_model.simple_from_spice(self.global_frame_orientation, 'IAU_Earth', 'IAU_Earth', self.simulation_start_epoch)
+        bodies = environment_setup.create_system_of_bodies(body_settings)
 
-# Set simulation start epoch
-simulation_start_epoch = 0.0  # s
-# Set termination conditions
-maximum_duration = constants.JULIAN_DAY  # s
-termination_altitude = 25.0E3  # m
-# Set vehicle properties
-capsule_density = 250.0  # kg m-3
+        self.add_chaser_body(bodies)
+        self.add_target_body(bodies)
 
-###########################################################################
-# CREATE ENVIRONMENT ######################################################
-###########################################################################
-
-# Define settings for celestial bodies
-bodies_to_create = ['Earth']
-# Define coordinate system
-global_frame_origin = 'Earth'
-global_frame_orientation = 'J2000'
-
-# Create body settings
-body_settings = environment_setup.get_default_body_settings(
-    bodies_to_create,
-    global_frame_origin,
-    global_frame_orientation)
-
-# Create simple earth body
-bodies = environment_setup.create_system_of_bodies(body_settings)
-body_settings.get('Earth').rotation_model_settings = environment_setup.rotation_model.simple_from_spice(global_frame_orientation, 'IAU_Earth', 'IAU_Earth', simulation_start_epoch)
-
-
-
-#######################################################################
-### TERMINATION SETTINGS AND RETRIEVING DEPENDENT VARIABLES TO SAVE ###
-#######################################################################
-
-# Retrieve termination settings
-termination_settings = Util.get_termination_settings(simulation_start_epoch,
-                                                     maximum_duration,
-                                                     termination_altitude)
-
-
-parameters = dict()
-objectives_and_constraints = dict()
-
-for simulation_index in range(number_of_simulations):
-
-    print('Simulation', simulation_index)
-
-    # If Monte Carlo, a random value is chosen with a uniform distribtion (NOTE: You can change the distribution)
-    for parameter_index in range(number_of_parameters):
-        shape_parameters[parameter_index] = np.random.uniform(decision_variable_range[0][parameter_index], decision_variable_range[1][parameter_index])
-
-    print('Parameters:', shape_parameters)
-        
-    parameters[simulation_index] = shape_parameters.copy()
-
-    # Problem class is created
-    current_capsule_entry_problem = ShapeOptimizationProblem(bodies,
-                                                     termination_settings,
-                                                     capsule_density,
-                                                     simulation_start_epoch,
-                                                     decision_variable_range)
-
-
-    # NOTE: Propagator settings, termination settings, and initial_propagation_time are defined in the fitness function
-    fitness = current_capsule_entry_problem.fitness(shape_parameters) # RIGHT NOW, FITNESS IS ALWAYS 0.0! MODIFY THE FUNCTION APPROPRIATELY
-    print('Fitness:', fitness)
+        return bodies
     
-    objectives_and_constraints[simulation_index] = fitness
+    def add_chaser_body(self, bodies):
+        bodies.create_empty_body('Chaser')
+        bodies.get_body('Chaser').set_constant_mass(10e3) 
+    
+    def add_target_body(self, bodies):
+        bodies.create_empty_body('Target')
+        bodies.get_body('Target').set_constant_mass(450e3) 
+        #environment_setup.add_rotation_model( bodies, 'Capsule',
+        #                                    environment_setup.rotation_model.aerodynamic_angle_based(
+        #                                        'Earth', 'J2000', 'CapsuleFixed', angle_function ))
 
-    ### OUTPUT OF THE SIMULATION ###
-    # Retrieve propagated state and dependent variables
-    state_history = current_capsule_entry_problem.get_last_run_dynamics_simulator().state_history
-    dependent_variable_history = current_capsule_entry_problem.get_last_run_dynamics_simulator().dependent_variable_history
 
-    # Get output path
-    subdirectory = '/DesignSpace_%s/Run_%s'%(design_space_method, simulation_index)
+   
+    def get_acceleration_settings(self):
+        acceleration_settings_on_vehicle = {'Earth': [propagation_setup.acceleration.point_mass_gravity()]}
 
-    # Decide if output writing is required
-    if write_results_to_file:
-        output_path = current_dir + subdirectory
-    else:
-        output_path = None
+        # Create acceleration models.
+        acceleration_settings = {'Chaser': acceleration_settings_on_vehicle}
+        acceleration_models = propagation_setup.create_acceleration_models(
+            self.bodies,
+            acceleration_settings,
+            self.bodies_to_propagate,
+            self.central_bodies)
 
-    # If desired, write output to a file
-    if write_results_to_file:
-        save2txt(state_history, 'state_history.dat', output_path)
-        save2txt(dependent_variable_history, 'dependent_variable_history.dat', output_path)
+        return acceleration_models
+    
+    def get_integrator_settings(self):
+        # Create numerical integrator settings.
+        integrator_settings = propagation_setup.integrator.runge_kutta_4(self.integrator_stepsize)
+        return integrator_settings
+    
+    def get_dependent_variables_to_save(self):
+        dependent_variables_to_save = [propagation_setup.dependent_variable.altitude('Chaser', 'Earth')]
+        return dependent_variables_to_save
+    
+    def setup_simulation(self, initial_state):
+        propagator_settings = propagation_setup.propagator.translational(self.central_bodies,
+                                                                     self.acceleration_models,
+                                                                     self.bodies_to_propagate,
+                                                                     initial_state,
+                                                                     self.simulation_start_epoch,
+                                                                     self.integrator_settings,
+                                                                     self.termination_settings,
+                                                                     self.propagator,
+                                                                     self.dep_vars_to_save)
+        return propagator_settings
+    
 
-    # Delete data in aerodynamic coefficient database
-    bodies.get_body( 'Capsule' ).aerodynamic_coefficient_interface.clear_data()
+    # combine the different termination options
+    def get_termination_settings(self):
 
-if write_results_to_file:
-    subdirectory = '/DesignSpace_%s'%(design_space_method)
-    output_path = current_dir + subdirectory
-    save2txt(parameters, 'parameter_values.dat', output_path)
-    save2txt(objectives_and_constraints, 'objectives_constraints.dat', output_path)
+        time_termination_settings = propagation_setup.propagator.time_termination(
+            self.simulation_start_epoch + self.max_simtime,
+            terminate_exactly_on_final_condition=False
+        )
+
+        # Altitude
+        #lower_altitude_termination_settings = propagation_setup.propagator.dependent_variable_termination(
+        #    dependent_variable_settings=propagation_setup.dependent_variable.altitude('Capsule', 'Earth'),
+        #    limit_value=termination_altitude,
+        #    use_as_lower_limit=True,
+        #    terminate_exactly_on_final_condition=False
+        #)
+        # Define list of termination settings
+        termination_settings_list = [time_termination_settings]
+
+        # Create hybrid termination settings object that terminates when one of multiple conditions are met
+        hybrid_termination_settings = propagation_setup.propagator.hybrid_termination(termination_settings_list,
+                                                                                    fulfill_single_condition=True)
+        return hybrid_termination_settings
