@@ -8,11 +8,15 @@ from tudatpy.data import save2txt
 # General imports
 import numpy as np
 import os
+import time
 
+#altitude = 1000E3 # meter
+altitude = 450E3 # meter
+target_kepler_orbit = np.array([6378E3+altitude, 0, 0, 0, 0, 0])
+sim_settings = SimSettings(target_kepler_orbit)
 
-sim_settings = SimSettings
-
-prop = sim_settings.setup_simulation()
+initial_cart_state = sim_settings.get_randomized_chaser_state()
+prop = sim_settings.setup_simulation(initial_cart_state)
 
 # Create simulation object and propagate dynamics.
 dynamics_simulator = numerical_simulation.create_dynamics_simulator(
@@ -37,4 +41,4 @@ save2txt(solution=state_history,
 save2txt(solution=dependent_variables,
          filename='PropagationHistory_DependentVariables.dat',
          directory='./'
-         )
+         ) 
