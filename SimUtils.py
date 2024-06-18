@@ -15,6 +15,7 @@ class SimSettings:
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
         self.max_simtime = 10.0*60.0            # 10 minutes
+        #self.max_simtime = 10
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
         self.integrator_stepsize = 0.1
@@ -74,7 +75,8 @@ class SimSettings:
         return integrator_settings
     
     def get_dependent_variables_to_save(self):
-        dependent_variables_to_save = [propagation_setup.dependent_variable.altitude('Chaser', 'Earth')]
+        dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth')                  
+                                       ]
         return dependent_variables_to_save
     
     def setup_simulation(self, initial_state):
@@ -122,5 +124,5 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[0] += 10            
+        randomized_state[1] += 10            
         return randomized_state
