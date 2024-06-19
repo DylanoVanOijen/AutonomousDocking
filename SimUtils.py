@@ -15,7 +15,7 @@ import math
 class SimSettings:
     def __init__(self, target_kepler_orbit):
         # Vehicle properties
-        self.isp = 5e3
+        self.isp = 300
         self.chaser_mass = 10e3
         self.target_mass = 450e3
 
@@ -24,7 +24,7 @@ class SimSettings:
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
         self.max_simtime = 10.0*60.0            # 10 minutes
-        self.max_simtime = 10
+        self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
         self.integrator_stepsize = 0.1
@@ -54,36 +54,38 @@ class SimSettings:
 
         return bodies
     
-    def add_chaser_body(self, bodies):
-        bodies.create_empty_body('Chaser')
-        bodies.get_body('Chaser').set_constant_mass(self.chaser_mass) 
-
-        rotation_model_settings = environment_setup.rotation_model.orbital_state_direction_based(self.central_bodies[1], is_colinear_with_velocity=True, 
-                                                                                                 direction_is_opposite_to_vector=False, base_frame = "",
-                                                                                                 target_frame = "ChaserFixed" )
-        environment_setup.add_rotation_model(bodies, 'Chaser', rotation_model_settings )
-
-        thrust_magnitude_settings_XP = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xp, specific_impulse=self.isp)
-        thrust_magnitude_settings_Xm = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xm, specific_impulse=self.isp)
-        thrust_magnitude_settings_YP = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Yp, specific_impulse=self.isp)
-        thrust_magnitude_settings_Ym = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Ym, specific_impulse=self.isp)
-        thrust_magnitude_settings_ZP = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Zp, specific_impulse=self.isp)
-        thrust_magnitude_settings_Zm = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Zm, specific_impulse=self.isp)
-
-        environment_setup.add_engine_model('Chaser', 'X+', thrust_magnitude_settings_XP, bodies, np.array([1,0,0]))
-        environment_setup.add_engine_model('Chaser', 'X-', thrust_magnitude_settings_Xm, bodies, np.array([-1,0,0]))
-        environment_setup.add_engine_model('Chaser', 'Y+', thrust_magnitude_settings_YP, bodies, np.array([0,1,0]))
-        environment_setup.add_engine_model('Chaser', 'Y-', thrust_magnitude_settings_Ym, bodies, np.array([0,-1,0]))
-        environment_setup.add_engine_model('Chaser', 'Z+', thrust_magnitude_settings_ZP, bodies, np.array([0,0,1]))
-        environment_setup.add_engine_model('Chaser', 'Z-', thrust_magnitude_settings_Zm, bodies, np.array([0,0,-1]))
-
-    
     def add_target_body(self, bodies):
         bodies.create_empty_body('Target')
         bodies.get_body('Target').set_constant_mass(self.target_mass) 
         #environment_setup.add_rotation_model( bodies, 'Capsule',
         #                                    environment_setup.rotation_model.aerodynamic_angle_based(
         #                                        'Earth', 'J2000', 'CapsuleFixed', angle_function ))
+    
+    def add_chaser_body(self, bodies):
+        bodies.create_empty_body('Chaser')
+        bodies.get_body('Chaser').set_constant_mass(self.chaser_mass) 
+
+                                                                                                        # check orientation of rot model
+        rotation_model_settings = environment_setup.rotation_model.orbital_state_direction_based('Earth', is_colinear_with_velocity=True, 
+                                                                                                 direction_is_opposite_to_vector=True, base_frame = self.global_frame_orientation,
+                                                                                                 target_frame = "ChaserFixed" )
+        environment_setup.add_rotation_model(bodies, 'Chaser', rotation_model_settings )
+
+        thrust_magnitude_settings_Xp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xp, specific_impulse=self.isp)
+        thrust_magnitude_settings_Xm = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xm, specific_impulse=self.isp)
+        thrust_magnitude_settings_Yp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Yp, specific_impulse=self.isp)
+        thrust_magnitude_settings_Ym = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Ym, specific_impulse=self.isp)
+        thrust_magnitude_settings_Zp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Zp, specific_impulse=self.isp)
+        thrust_magnitude_settings_Zm = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Zm, specific_impulse=self.isp)
+
+        # Need the eps for the while as long as rotational dynamics are not propagated (I think)
+        # Because problem: +X and -X direction thrust give same result (maybe quaterion rotation singularity?)
+        environment_setup.add_engine_model('Chaser', 'X+', thrust_magnitude_settings_Xp, bodies, np.array([1,-np.finfo(float).eps,0]))
+        environment_setup.add_engine_model('Chaser', 'X-', thrust_magnitude_settings_Xm, bodies, np.array([-1,np.finfo(float).eps,0]))
+        environment_setup.add_engine_model('Chaser', 'Y+', thrust_magnitude_settings_Yp, bodies, np.array([0,1,0]))
+        environment_setup.add_engine_model('Chaser', 'Y-', thrust_magnitude_settings_Ym, bodies, np.array([0,-1,0]))
+        environment_setup.add_engine_model('Chaser', 'Z+', thrust_magnitude_settings_Zp, bodies, np.array([0,0,1]))
+        environment_setup.add_engine_model('Chaser', 'Z-', thrust_magnitude_settings_Zm, bodies, np.array([0,0,-1]))
 
 
    
@@ -226,13 +228,22 @@ class ChaserGNC:
             #self.angle_of_attack = ...
             #self.bank_angle = ...
 
-            # Calculate current thrust magnitude
-            self.thrust_magnitude_Xp = 10
-            self.thrust_magnitude_Xm = 0
-            self.thrust_magnitude_Yp = 0
-            self.thrust_magnitude_Ym = 0
-            self.thrust_magnitude_Zp = 0
-            self.thrust_magnitude_Zm = 0
+            if current_time < 1:
+                # Calculate current thrust magnitude
+                self.thrust_magnitude_Xp = 000
+                self.thrust_magnitude_Xm = 000
+                self.thrust_magnitude_Yp = 1000
+                self.thrust_magnitude_Ym = 000
+                self.thrust_magnitude_Zp = 000
+                self.thrust_magnitude_Zm = 000
+            else:
+                self.thrust_magnitude_Xp = 0
+                self.thrust_magnitude_Xm = 0
+                self.thrust_magnitude_Yp = 0
+                self.thrust_magnitude_Ym = 0
+                self.thrust_magnitude_Zp = 0
+                self.thrust_magnitude_Zm = 0
+
 
     	    # Set the model's current time, indicating that it has been updated
             self.current_time = current_time
