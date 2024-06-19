@@ -19,8 +19,12 @@ initial_cart_state = sim_settings.get_randomized_chaser_state()
 prop = sim_settings.setup_simulation(initial_cart_state)
 
 # Create simulation object and propagate dynamics.
+t1 = time.process_time()
 dynamics_simulator = numerical_simulation.create_dynamics_simulator(
     sim_settings.bodies, prop)
+t2 = time.process_time()
+
+print("Time = ", t2-t1)
 
 # Retrieve all data produced by simulation
 propagation_results = dynamics_simulator.propagation_results
@@ -41,4 +45,9 @@ save2txt(solution=state_history,
 save2txt(solution=dependent_variables,
          filename='PropagationHistory_DependentVariables.dat',
          directory='./'
-         ) 
+         )
+
+
+# Automatically run the post processing script:
+with open("plot_trajectory.py") as file:
+    exec(file.read())

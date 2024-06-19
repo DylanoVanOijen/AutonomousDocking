@@ -24,7 +24,7 @@ class SimSettings:
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
         self.max_simtime = 10.0*60.0            # 10 minutes
-        #self.max_simtime = 10
+        self.max_simtime = 10
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
         self.integrator_stepsize = 0.1
@@ -36,6 +36,7 @@ class SimSettings:
         self.dep_vars_to_save = self.get_dependent_variables_to_save()
         self.termination_settings = self.get_termination_settings()
         self.target_cartesian_orbit = self.get_cart_state(self.target_kepler_orbit)
+        self.chaser_GNC.add_bodies(self.bodies)
 
     def get_environment_settings(self):
         bodies_to_create = ['Earth']
@@ -87,11 +88,13 @@ class SimSettings:
 
    
     def get_acceleration_settings(self):
-        acceleration_settings_on_vehicle = {'Earth': [propagation_setup.acceleration.point_mass_gravity()],
+        acceleration_settings_on_chaser = {'Earth': [propagation_setup.acceleration.point_mass_gravity()],
                                             'Chaser':[propagation_setup.acceleration.thrust_from_all_engines()]}
 
+        acceleration_settings_on_Target = {'Earth': [propagation_setup.acceleration.point_mass_gravity()]}
+
         # Create acceleration models.
-        acceleration_settings = {'Chaser': acceleration_settings_on_vehicle, 'Target': acceleration_settings_on_vehicle}
+        acceleration_settings = {'Chaser': acceleration_settings_on_chaser, 'Target': acceleration_settings_on_Target}
         acceleration_models = propagation_setup.create_acceleration_models(
             self.bodies,
             acceleration_settings,
@@ -155,49 +158,60 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[1] += 10            
+        #randomized_state[1] += 10            
         return randomized_state
     
 
 class ChaserGNC:
-    def __init__(self, bodies: environment.SystemOfBodies):
+    def __init__(self):
         # Extract the STS and Earth bodies
-        self.vehicle = bodies.get_body("Chaser")
-        self.earth = bodies.get_body("Earth")
+        self.vehicle = None
+        self.earth = None
+
+        self.thrust_magnitude_Xp = 0
+        self.thrust_magnitude_Xm = 0
+        self.thrust_magnitude_Yp = 0
+        self.thrust_magnitude_Ym = 0
+        self.thrust_magnitude_Zp = 0
+        self.thrust_magnitude_Zm = 0
 
         self.current_time = float("NaN")
+
+    def add_bodies(self, bodies: environment.SystemOfBodies):
+        self.vehicle = bodies.get_body("Chaser")
+        self.earth = bodies.get_body("Earth")
 
     def get_aerodynamic_angles(self, current_time: float):
 
         # Update the class to the current time
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         
         # Return angles calculated by update function
         return np.array([self.angle_of_attack, 0.0, self.bank_angle])
 
 
     def get_thrust_magnitude_Xp(self, current_time: float):
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         return self.thrust_magnitude_Xp
     
     def get_thrust_magnitude_Xm(self, current_time: float):
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         return self.thrust_magnitude_Xm
     
     def get_thrust_magnitude_Yp(self, current_time: float):
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         return self.thrust_magnitude_Yp
     
     def get_thrust_magnitude_Ym(self, current_time: float):
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         return self.thrust_magnitude_Ym
     
     def get_thrust_magnitude_Zp(self, current_time: float):
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         return self.thrust_magnitude_Zp
     
     def get_thrust_magnitude_Zm(self, current_time: float):
-        self.update_guidance( current_time )
+        self.update_GNC( current_time )
         return self.thrust_magnitude_Zm
 
 
@@ -209,11 +223,16 @@ class ChaserGNC:
         elif( current_time != self.current_time ):
 
             # Calculate current body orientation through angle of attack and bank angle
-            self.angle_of_attack = ...
-            self.bank_angle = ...
+            #self.angle_of_attack = ...
+            #self.bank_angle = ...
 
             # Calculate current thrust magnitude
-            self.thrust_magnitude = ...
+            self.thrust_magnitude_Xp = 10
+            self.thrust_magnitude_Xm = 0
+            self.thrust_magnitude_Yp = 0
+            self.thrust_magnitude_Ym = 0
+            self.thrust_magnitude_Zp = 0
+            self.thrust_magnitude_Zm = 0
 
-	    # Set the model's current time, indicating that it has been updated
+    	    # Set the model's current time, indicating that it has been updated
             self.current_time = current_time
