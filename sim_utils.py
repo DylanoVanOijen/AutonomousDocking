@@ -1,8 +1,12 @@
+# Module imports
+from agent import *
+
 # Tudat imports
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.numerical_simulation import propagation_setup
 from tudatpy.kernel.numerical_simulation import environment
 from tudatpy.kernel.astro import element_conversion
+from tudatpy.kernel.astro import frame_conversion
 
 # Tudat SPICE kernel setup
 from tudatpy.interface import spice
@@ -19,6 +23,7 @@ class SimSettings:
         self.chaser_mass = 10e3
         self.target_mass = 450e3
 
+        self.agent = None
         self.target_kepler_orbit = target_kepler_orbit
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
@@ -37,6 +42,8 @@ class SimSettings:
         self.termination_settings = self.get_termination_settings()
         self.target_cartesian_orbit = self.get_cart_state(self.target_kepler_orbit)
         self.chaser_GNC.add_bodies(self.bodies)
+        self.observation = np.zeros(6)
+
 
     def get_environment_settings(self):
         bodies_to_create = ['Earth']
@@ -125,7 +132,7 @@ class SimSettings:
                                                                         termination_settings = self.termination_settings,
                                                                         propagator = self.propagator,
                                                                         output_variables = self.dep_vars_to_save)
-        
+              
         return propagator_settings
     
 
@@ -160,16 +167,19 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        #randomized_state[1] += 10            
+        randomized_state[1] += 10    
+
+        #self.observation =         
         return randomized_state
     
 
 class ChaserGNC:
     def __init__(self):
         # Extract the STS and Earth bodies
-        self.vehicle = None
+        self.chaser = None
+        self.target = None
         self.earth = None
-
+    
         self.thrust_magnitude_Xp = 0
         self.thrust_magnitude_Xm = 0
         self.thrust_magnitude_Yp = 0
@@ -180,8 +190,20 @@ class ChaserGNC:
         self.current_time = float("NaN")
 
     def add_bodies(self, bodies: environment.SystemOfBodies):
-        self.vehicle = bodies.get_body("Chaser")
+        self.chaser = bodies.get_body("Chaser")
+        self.target = bodies.get_body("Target")
         self.earth = bodies.get_body("Earth")
+
+        # Extract the Chaser and Target flight conditions, angle calculator, and aerodynamic coefficient interface
+        environment_setup.add_flight_conditions(bodies, 'Chaser', 'Earth')
+        environment_setup.add_flight_conditions(bodies, 'Target', 'Earth' )
+        self.chaser_flight_conditions = bodies.get_body("Chaser").flight_conditions
+        self.target_flight_conditions = bodies.get_body("Target").flight_conditions
+        self.chaser_aerodynamic_angle_calculator = self.chaser_flight_conditions.aerodynamic_angle_calculator
+        self.target_aerodynamic_angle_calculator = self.target_flight_conditions.aerodynamic_angle_calculator
+
+    def add_agent(self, agent:Agent):
+        self.agent = agent
 
     def get_aerodynamic_angles(self, current_time: float):
 
@@ -218,21 +240,30 @@ class ChaserGNC:
 
 
     def update_GNC(self, current_time: float):
-
         if( math.isnan( current_time ) ):
 	    # Set the model's current time to NaN, indicating that it needs to be updated 
             self.current_time = float("NaN")
-        elif( current_time != self.current_time ):
+        elif( current_time != self.current_time ):          
+            delta_pos_inertial = self.chaser.position-self.target.position
+            delta_vel_inertial = self.chaser.velocity-self.target.velocity
 
+            inertial_to_TNW_rotation_matrix = frame_conversion.inertial_to_tnw_rotation_matrix(self.target.state, True)
+
+            chaser_pos_TNW = inertial_to_TNW_rotation_matrix@delta_pos_inertial
+            chaser_vel_TNW = inertial_to_TNW_rotation_matrix@delta_vel_inertial
+
+            observation = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
+            #print(chaser_pos_TNW, chaser_vel_TNW)
             # Calculate current body orientation through angle of attack and bank angle
             #self.angle_of_attack = ...
             #self.bank_angle = ...
+
 
             if current_time < 1:
                 # Calculate current thrust magnitude
                 self.thrust_magnitude_Xp = 000
                 self.thrust_magnitude_Xm = 000
-                self.thrust_magnitude_Yp = 1000
+                self.thrust_magnitude_Yp = 000
                 self.thrust_magnitude_Ym = 000
                 self.thrust_magnitude_Zp = 000
                 self.thrust_magnitude_Zm = 000
