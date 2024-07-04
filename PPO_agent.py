@@ -1,16 +1,19 @@
-from models import *
+from PPO_models import *
 
 class Agent:
     def __init__(self, n_actions, input_dims, gamma=0.99, alpha=0.0003, gae_lambda=0.95,
-            policy_clip=0.2, batch_size=64, n_epochs=10):
+            policy_clip=0.2, batch_size=64, N = 10, n_epochs=10,):
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
         self.gae_lambda = gae_lambda
+        self.N = N
+        self.learning_iterations = 0
+        self.steps = 0
 
         self.actor = ActorNetwork(n_actions, input_dims, alpha)
         self.critic = CriticNetwork(input_dims, alpha)
-        self.memory = PPOMemory(batch_size)
+        self.memory = ReplayBuffer(batch_size)
        
     def remember(self, state, action, probs, vals, reward, done):
         self.memory.store_memory(state, action, probs, vals, reward, done)
@@ -26,13 +29,16 @@ class Agent:
         self.critic.load_checkpoint()
 
     def choose_action(self, observation):
-        state = torch.tensor([observation], dtype=torch.float).to(self.actor.device)
+        state = torch.tensor(observation, dtype=torch.float).to(self.actor.device)
+        print("State", state)
 
-        dist = self.actor(state)
+        action = self.actor(state)
+        #print("Dist", dist)
         value = self.critic(state)
-        action = dist.sample()
+        #action = dist.sample()
+        print("Action", action)
 
-        probs = torch.squeeze(dist.log_prob(action)).item()
+        #probs = torch.squeeze(dist.log_prob(action)).item()
         action = torch.squeeze(action).item()
         value = torch.squeeze(value).item()
 

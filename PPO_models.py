@@ -3,16 +3,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.categorical import Categorical
+#from torch.distributions.categorical import Categorical
 
-class PPOMemory:
+class ReplayBuffer:
     def __init__(self, batch_size):
-        self.states = []
-        self.probs = []
-        self.vals = []
-        self.actions = []
-        self.rewards = []
-        self.dones = []
+        self.states = np.array([])
+        self.probs = np.array([])
+        self.vals = np.array([])
+        self.actions = np.array([])
+        self.rewards = np.array([])
+        self.dones = np.array([])
 
         self.batch_size = batch_size
 
@@ -47,6 +47,7 @@ class PPOMemory:
         self.dones = []
         self.vals = []
 
+
 class ActorNetwork(nn.Module):
     def __init__(self, n_actions, input_dims, alpha,
             fc1_dims=256, fc2_dims=256, chkpt_dir='tmp/ppo'):
@@ -54,12 +55,12 @@ class ActorNetwork(nn.Module):
 
         self.checkpoint_file = os.path.join(chkpt_dir, 'actor_torch_ppo')
         self.actor = nn.Sequential(
-                nn.Linear(*input_dims, fc1_dims),
+                nn.Linear(input_dims, fc1_dims),
                 nn.ReLU(),
                 nn.Linear(fc1_dims, fc2_dims),
                 nn.ReLU(),
                 nn.Linear(fc2_dims, n_actions),
-                nn.Softmax(dim=-1)
+                nn.Sigmoid()
         )
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
@@ -69,7 +70,9 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         dist = self.actor(state)
-        dist = Categorical(dist)
+        #print("Dist1", dist)
+        #dist = Categorical(dist)
+        #print("Dist2", dist)
         
         return dist
 
@@ -86,7 +89,7 @@ class CriticNetwork(nn.Module):
 
         self.checkpoint_file = os.path.join(chkpt_dir, 'critic_torch_ppo')
         self.critic = nn.Sequential(
-                nn.Linear(*input_dims, fc1_dims),
+                nn.Linear(input_dims, fc1_dims),
                 nn.ReLU(),
                 nn.Linear(fc1_dims, fc2_dims),
                 nn.ReLU(),

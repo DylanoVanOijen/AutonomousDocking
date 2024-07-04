@@ -1,5 +1,5 @@
 # Module imports
-from agent import *
+from TD3_agent import *
 
 # Tudat imports
 from tudatpy.kernel.numerical_simulation import environment_setup
@@ -79,21 +79,14 @@ class SimSettings:
         environment_setup.add_rotation_model(bodies, 'Chaser', rotation_model_settings )
 
         thrust_magnitude_settings_Xp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xp, specific_impulse=self.isp)
-        thrust_magnitude_settings_Xm = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xm, specific_impulse=self.isp)
         thrust_magnitude_settings_Yp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Yp, specific_impulse=self.isp)
-        thrust_magnitude_settings_Ym = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Ym, specific_impulse=self.isp)
         thrust_magnitude_settings_Zp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Zp, specific_impulse=self.isp)
-        thrust_magnitude_settings_Zm = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Zm, specific_impulse=self.isp)
 
         # Need the eps for the while as long as rotational dynamics are not propagated (I think)
         # Because problem: +X and -X direction thrust give same result (maybe quaterion rotation singularity?)
         environment_setup.add_engine_model('Chaser', 'X+', thrust_magnitude_settings_Xp, bodies, np.array([1,-np.finfo(float).eps,0]))
-        environment_setup.add_engine_model('Chaser', 'X-', thrust_magnitude_settings_Xm, bodies, np.array([-1,np.finfo(float).eps,0]))
         environment_setup.add_engine_model('Chaser', 'Y+', thrust_magnitude_settings_Yp, bodies, np.array([0,1,0]))
-        environment_setup.add_engine_model('Chaser', 'Y-', thrust_magnitude_settings_Ym, bodies, np.array([0,-1,0]))
         environment_setup.add_engine_model('Chaser', 'Z+', thrust_magnitude_settings_Zp, bodies, np.array([0,0,1]))
-        environment_setup.add_engine_model('Chaser', 'Z-', thrust_magnitude_settings_Zm, bodies, np.array([0,0,-1]))
-
 
    
     def get_acceleration_settings(self):
@@ -181,11 +174,8 @@ class ChaserGNC:
         self.earth = None
     
         self.thrust_magnitude_Xp = 0
-        self.thrust_magnitude_Xm = 0
         self.thrust_magnitude_Yp = 0
-        self.thrust_magnitude_Ym = 0
         self.thrust_magnitude_Zp = 0
-        self.thrust_magnitude_Zm = 0
 
         self.current_time = float("NaN")
 
@@ -217,27 +207,15 @@ class ChaserGNC:
     def get_thrust_magnitude_Xp(self, current_time: float):
         self.update_GNC( current_time )
         return self.thrust_magnitude_Xp
-    
-    def get_thrust_magnitude_Xm(self, current_time: float):
-        self.update_GNC( current_time )
-        return self.thrust_magnitude_Xm
-    
+        
     def get_thrust_magnitude_Yp(self, current_time: float):
         self.update_GNC( current_time )
         return self.thrust_magnitude_Yp
-    
-    def get_thrust_magnitude_Ym(self, current_time: float):
-        self.update_GNC( current_time )
-        return self.thrust_magnitude_Ym
-    
+        
     def get_thrust_magnitude_Zp(self, current_time: float):
         self.update_GNC( current_time )
         return self.thrust_magnitude_Zp
     
-    def get_thrust_magnitude_Zm(self, current_time: float):
-        self.update_GNC( current_time )
-        return self.thrust_magnitude_Zm
-
 
     def update_GNC(self, current_time: float):
         if( math.isnan( current_time ) ):
@@ -252,28 +230,29 @@ class ChaserGNC:
             chaser_pos_TNW = inertial_to_TNW_rotation_matrix@delta_pos_inertial
             chaser_vel_TNW = inertial_to_TNW_rotation_matrix@delta_vel_inertial
 
-            observation = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
-            #print(chaser_pos_TNW, chaser_vel_TNW)
-            # Calculate current body orientation through angle of attack and bank angle
-            #self.angle_of_attack = ...
-            #self.bank_angle = ...
-
+            state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
+            action = self.agent.compute_action(state)
+            print("Action", action)
+            action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.max_action)
+            action = action.clip(-1*self.agent.max_action, self.agent.max_action)
+ 
 
             if current_time < 1:
                 # Calculate current thrust magnitude
                 self.thrust_magnitude_Xp = 000
-                self.thrust_magnitude_Xm = 000
                 self.thrust_magnitude_Yp = 000
-                self.thrust_magnitude_Ym = 000
                 self.thrust_magnitude_Zp = 000
-                self.thrust_magnitude_Zm = 000
             else:
                 self.thrust_magnitude_Xp = 0
-                self.thrust_magnitude_Xm = 0
                 self.thrust_magnitude_Yp = 0
-                self.thrust_magnitude_Ym = 0
                 self.thrust_magnitude_Zp = 0
-                self.thrust_magnitude_Zm = 0
+
+
+            # compute reward here (?)
+            # ...
+
+            if self.current_time != 0:
+                self.agent.replay_buffer.add((state, action, reward, next_state, float(done)))
 
 
     	    # Set the model's current time, indicating that it has been updated
