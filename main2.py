@@ -5,6 +5,7 @@ from TD3_agent import *
 # Tudat imports
 from tudatpy.kernel import numerical_simulation
 from tudatpy.data import save2txt
+from tudatpy.util import result2array
 
 # General imports
 import numpy as np
@@ -12,10 +13,8 @@ import os
 import time
 
 if __name__ == '__main__':    
-
-
     ###### Hyperparameters ######
-    log_interval = 10           # print avg reward after interval
+    moving_avg_length = 10  # number of episodes over which to compute moving average
     random_seed = 0
     gamma = 0.99                # discount for future rewards
     batch_size = 100            # num of transitions sampled from replay buffer
@@ -30,20 +29,24 @@ if __name__ == '__main__':
     max_timesteps = 2000        # max timesteps in one episode
 
     fc1_dim = 400               # Number of nodes in fully connected linear layer 1
-    fc2_dim = 400               # Number of nodes in fully connected linear layer 2
+    fc2_dim = 300               # Number of nodes in fully connected linear layer 2
 
-    action_space_size = 9   # for each direction, pos, neg or no thrust
+    approach_direction = "pos_R-bar"    # choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
+    reward_type = "simple"           # choose from simple, full or ...
+
+    action_space_size = 3   # for each direction, pos, neg or no thrust
     observation_space_size = 6 # pos and vel in TNW frame of Target
 
     # Setting seed
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)   
 
+
     # Creating agent
     agent = Agent(alpha=lr_actor, beta=lr_critic, state_dim=observation_space_size, action_dim=action_space_size, 
                   fc1_dim=fc1_dim, fc2_dim=fc2_dim, max_action=1, batch_size=batch_size, gamma=gamma, 
                   polyak=polyak, policy_noise=policy_noise, noise_clip=noise_clip, policy_delay=policy_delay,
-                  exploration_noise=exploration_noise)
+                  exploration_noise=exploration_noise, approach_direction=approach_direction, reward_type=reward_type)
     
     # Sim settings
     altitude = 450E3 # meter
@@ -51,15 +54,13 @@ if __name__ == '__main__':
     sim_settings = SimSettings(target_kepler_orbit)
     sim_settings.chaser_GNC.add_agent(agent)
  
-    score_history = []
+    moving_reward_hist = []
+    total_reward_hist = []
 
-    learning_steps = 0
-    avg_reward = 0
-    ep_reward = 0
     best_reward = 0
 
     # run simulations
-    for i in range(max_episodes):
+    for episode in range(max_episodes):
         initial_cartesian_state = sim_settings.get_randomized_chaser_state()
         prop = sim_settings.setup_simulation(initial_cartesian_state)
         score = 0
@@ -68,20 +69,29 @@ if __name__ == '__main__':
         t1 = time.process_time()
         dynamics_simulator = numerical_simulation.create_dynamics_simulator(
             sim_settings.bodies, prop)
+        
+        states = dynamics_simulator.state_history
+        dep_vars = dynamics_simulator.dependent_variable_history
+
+        states_array = result2array(states)
+        dep_vars_array = result2array(dep_vars)
+
         t2 = time.process_time()
-        print("Time = ", t2-t1)
+        print("Epsiode runtime = ", t2-t1)
 
-        # update using the len(t)-1, so all steps
-        agent.update(len())
+        agent.update(states_array.shape[0]-1)
 
-        score_history.append(score)
-        avg_score = np.mean(score_history[-100:])
+        total_reward_hist.append(agent.episode_reward)
+        moving_reward_hist.append(agent.episode_reward)
+        if episode+1 > moving_avg_length:
+            moving_reward_hist.pop(0)
 
-        if avg_score > best_score:
-            best_score = avg_score
+        if agent.episode_reward > best_reward:
             agent.save_models()
+            best_reward = agent.episode_reward
 
-        #print('episode', i, 'score %.1f' % score, 'avg score %.1f' % avg_score,
-        #        'time_steps', n_steps, 'learning_steps', learn_iters)
+        print(f"Episode: {episode}, Reward = {agent.episode_reward:.1f}, Mean {moving_avg_length} avg reward = {np.mean(moving_reward_hist)}")
 
+        agent.episode_reward = 0
+        
 

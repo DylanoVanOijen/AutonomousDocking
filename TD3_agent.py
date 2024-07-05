@@ -2,10 +2,50 @@ from TD3_models import *
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+class RewardComputer():
+    def __init__(self, approach_direction, reward_type):
+        self.docking_ports = {  # w.r.t. to the COM of the Target vehicle in its TNW frame 
+            "pos_R-bar": np.array([-2, -2 , 0])
+        }
+
+        self.reward_function = None
+        self.port_loc = None
+        self.last_rel_pos = None
+
+        self.eta = 1.0
+        self.kappa = 0.5
+        #self.lamda = 0.1
+        #self.mu = 
+        #self.delta = 100
+
+        if approach_direction == "pos_R-bar":
+            if reward_type == "simple":
+                self.reward_function = self.pos_R_simple
+                self.port_loc = self.docking_ports[approach_direction]
+
+    def set_initial_rel_pos(self, state):
+        self.last_rel_pos = state[0:3] - self.port_loc
+
+    def pos_R_simple(self, state):
+        rel_pos = state[0:3] - self.port_loc
+        rwd_position = -self.eta * np.linalg.norm(rel_pos)                          # reward for getting closer
+        rwd_position_heading = -self.kappa * np.sign(np.dot(rel_pos, state[3:6]))   # reward for moving towards docking port
+
+        #return rwd_position + rwd_position_heading + rwd_smooth
+        return rwd_position + rwd_position_heading
+
+    def compute_final_reward_bonus(self, state):
+        return
+
+
+    def get_reward(self, state):
+        return self.reward_function(state)
+
+
 class Agent():
     def __init__(self, alpha, beta, state_dim, action_dim, fc1_dim, fc2_dim, max_action,
                  batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,
-                 exploration_noise):
+                 exploration_noise, approach_direction, reward_type):
         
         self.actor = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="actor")
         self.actor_target = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="target_actor")
@@ -32,6 +72,11 @@ class Agent():
         self.noise_clip = noise_clip
         self.policy_delay = policy_delay
         self.exploration_noise = exploration_noise
+        self.episode_reward = 0
+        self.approach_direction = approach_direction
+        self.reward_type = reward_type
+
+        self.reward_computer = RewardComputer(self.approach_direction, self.reward_type)
         
     
     def compute_action(self, state):
@@ -96,7 +141,7 @@ class Agent():
                     target_param.data.copy_( (self.polyak * target_param.data) + ((1-self.polyak) * param.data))
 
     def save_models(self):
-        print('... saving checkpoint ...')
+        print('... saving model checkpoint ...')
         self.actor.save_model()
         self.actor_target.save_model()
         self.critic_1.save_model()
@@ -106,7 +151,7 @@ class Agent():
 
 
     def load_models(self):
-        print('... loading checkpoint ...')
+        print('... loading model checkpoint ...')
         self.actor.load_model()
         self.actor_target.load_model()
         self.critic_1.load_model()

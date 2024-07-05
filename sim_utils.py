@@ -19,7 +19,8 @@ import math
 class SimSettings:
     def __init__(self, target_kepler_orbit):
         # Vehicle properties
-        self.isp = 300
+        self.isp = 300      # Seconds
+        self.thrust = 1000  # Newton
         self.chaser_mass = 10e3
         self.target_mass = 450e3
 
@@ -28,13 +29,13 @@ class SimSettings:
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
-        self.max_simtime = 10.0*60.0            # 10 minutes
-        self.max_simtime = 100
+        self.max_simtime = 5.0*60.0            # 5 minutes
+        #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
         self.integrator_stepsize = 0.1
         self.propagator = propagation_setup.propagator.encke
-        self.chaser_GNC = ChaserGNC() 
+        self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize) 
         self.bodies = self.get_environment_settings()
         self.acceleration_models = self.get_acceleration_settings()
         self.integrator_settings = self.get_integrator_settings()
@@ -167,11 +168,15 @@ class SimSettings:
     
 
 class ChaserGNC:
-    def __init__(self):
+    def __init__(self, thrust, dt):
         # Extract the STS and Earth bodies
         self.chaser = None
         self.target = None
         self.earth = None
+
+        self.max_impulse = thrust*dt    # Newton seconds
+
+        self.last_state = None
     
         self.thrust_magnitude_Xp = 0
         self.thrust_magnitude_Yp = 0
@@ -243,17 +248,16 @@ class ChaserGNC:
                 self.thrust_magnitude_Yp = 000
                 self.thrust_magnitude_Zp = 000
             else:
-                self.thrust_magnitude_Xp = 0
-                self.thrust_magnitude_Yp = 0
-                self.thrust_magnitude_Zp = 0
+                self.thrust_magnitude_Xp = action[0]*self.max_impulse
+                self.thrust_magnitude_Yp = action[1]*self.max_impulse
+                self.thrust_magnitude_Zp = action[2]*self.max_impulse
 
 
-            # compute reward here (?)
-            # ...
+            if self.current_time != 0.0:
+                reward = self.agent.reward_computer.get_reward(state)
+                self.agent.replay_buffer.add((self.last_state, action, reward, state, float(False)))
 
-            if self.current_time != 0:
-                self.agent.replay_buffer.add((state, action, reward, next_state, float(done)))
-
+            self.last_state = state
 
     	    # Set the model's current time, indicating that it has been updated
             self.current_time = current_time
