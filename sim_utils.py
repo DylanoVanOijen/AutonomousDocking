@@ -108,7 +108,8 @@ class SimSettings:
     
     def get_integrator_settings(self):
         # Create numerical integrator settings.
-        integrator_settings = propagation_setup.integrator.runge_kutta_4(self.integrator_stepsize)
+        coeff_set = propagation_setup.integrator.CoefficientSets.rk_4
+        integrator_settings = propagation_setup.integrator.runge_kutta_fixed_step(self.integrator_stepsize, coeff_set)
         return integrator_settings
     
     def get_dependent_variables_to_save(self):
@@ -135,7 +136,7 @@ class SimSettings:
 
         time_termination_settings = propagation_setup.propagator.time_termination(
             self.simulation_start_epoch + self.max_simtime,
-            terminate_exactly_on_final_condition=False
+            terminate_exactly_on_final_condition=True
         )
 
         # Altitude
@@ -150,7 +151,7 @@ class SimSettings:
 
         # Create hybrid termination settings object that terminates when one of multiple conditions are met
         hybrid_termination_settings = propagation_setup.propagator.hybrid_termination(termination_settings_list,
-                                                                                    fulfill_single_condition=True)
+                                                                                    fulfill_single_condition=False)
         return hybrid_termination_settings
     
     def get_cart_state(self, kepler_state):
@@ -175,8 +176,10 @@ class ChaserGNC:
         self.earth = None
 
         self.max_impulse = thrust*dt    # Newton seconds
+        self.rel_tol = dt/10
 
         self.last_state = None
+        self.counter = 0
     
         self.thrust_magnitude_Xp = 0
         self.thrust_magnitude_Yp = 0
@@ -200,16 +203,8 @@ class ChaserGNC:
     def add_agent(self, agent:Agent):
         self.agent = agent
 
-    def get_aerodynamic_angles(self, current_time: float):
-
-        # Update the class to the current time
-        self.update_GNC( current_time )
-        
-        # Return angles calculated by update function
-        return np.array([self.angle_of_attack, 0.0, self.bank_angle])
-
-
     def get_thrust_magnitude_Xp(self, current_time: float):
+        #print("Called with ", current_time)
         self.update_GNC( current_time )
         return self.thrust_magnitude_Xp
         
@@ -223,10 +218,14 @@ class ChaserGNC:
     
 
     def update_GNC(self, current_time: float):
+        print(current_time, math.isnan( current_time ))
         if( math.isnan( current_time ) ):
 	    # Set the model's current time to NaN, indicating that it needs to be updated 
             self.current_time = float("NaN")
-        elif( current_time != self.current_time ):          
+        elif (current_time != self.current_time):
+        #elif not math.isclose(current_time, self.current_time, rel_tol = self.rel_tol):
+            #print("1")
+            #print(current_time, self.current_time)          
             delta_pos_inertial = self.chaser.position-self.target.position
             delta_vel_inertial = self.chaser.velocity-self.target.velocity
 
@@ -237,10 +236,10 @@ class ChaserGNC:
 
             state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
             action = self.agent.compute_action(state)
-            print("Action", action)
+            #print("Action", action)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.max_action)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
- 
+            
 
             if current_time < 1:
                 # Calculate current thrust magnitude
@@ -256,8 +255,13 @@ class ChaserGNC:
             if self.current_time != 0.0:
                 reward = self.agent.reward_computer.get_reward(state)
                 self.agent.replay_buffer.add((self.last_state, action, reward, state, float(False)))
+                self.agent.episode_reward += reward
+                self.counter += 1
+                #print(self.counter)
 
             self.last_state = state
 
     	    # Set the model's current time, indicating that it has been updated
             self.current_time = current_time
+            #print("2")
+            #print(current_time, self.current_time)          

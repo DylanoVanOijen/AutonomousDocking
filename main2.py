@@ -78,7 +78,9 @@ if __name__ == '__main__':
 
         t2 = time.process_time()
         print("Epsiode runtime = ", t2-t1)
+        #print(states_array[0,0], states_array[-2,0], states_array[-1,0])
 
+        #print(states_array.shape[0])
         agent.update(states_array.shape[0]-1)
 
         total_reward_hist.append(agent.episode_reward)
