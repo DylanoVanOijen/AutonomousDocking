@@ -47,7 +47,6 @@ def plot_velocity_2d(axis, inertial_states, dep_vars):
 
     return axis
 
-
 def plot_thrust_body_frame(axis, dep_vars):
     time = dep_vars[:,0]
     n_times = len(time)
@@ -88,3 +87,43 @@ def plot_thrust_TNW_frame(axis, dep_vars):
     axis.grid()
     axis.legend()
     return axis
+
+
+def plot_trajectory_3d(axis, inertial_states, dep_vars):
+    target_states = inertial_states[:,1:7]
+    chaser_states = inertial_states[:,7:13]
+    delta_state_inertial = chaser_states-target_states
+    n_times = target_states.shape[0]
+    print(n_times)
+
+    tnw_to_inertial_array = dep_vars[:, 1:10]
+    tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(n_times, 3,3)
+    delta_pos_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix[i, :, :]), delta_state_inertial[i,0:3]) for i in range(n_times)])
+
+    axis.plot3D(delta_pos_tnw[:,0], delta_pos_tnw[:,1], delta_pos_tnw[:,2], 'blue')
+    axis.set_title("Position of chaser in target TNW frame")
+    axis.set_xlabel("T [x]")
+    axis.set_ylabel("N [m]")
+    axis.set_zlabel("W [m]")
+    axis.set_xlim(-200,200)
+    axis.set_ylim(-200,200)
+    axis.set_zlim(-200,200)
+    axis.grid()
+
+    return axis
+
+
+def plot_training_performance(ax, reward):
+    episodes = np.arange(0,len(reward))
+
+    #print(episodes, reward)
+    #print(episodes, moving_avg_reward)
+
+    ax.clear()
+    ax.plot(episodes, reward, label = "Episode reward")
+    ax.set_xlabel("Episode [-]")
+    ax.set_ylabel("Reward value [-]")
+    ax.set_xlim(0,len(episodes))
+    ax.legend()
+
+    return ax

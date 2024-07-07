@@ -1,6 +1,7 @@
 # Module imports
 from sim_utils import *
 from TD3_agent import *
+from post_process_utils import *
 
 # Tudat imports
 from tudatpy.kernel import numerical_simulation
@@ -8,6 +9,7 @@ from tudatpy.data import save2txt
 from tudatpy.util import result2array
 
 # General imports
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import time
@@ -40,6 +42,9 @@ if __name__ == '__main__':
     # Setting seed
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)   
+
+    # Performance plot init
+    fig, ((ax1))= plt.subplots(1,1, figsize=(8,5))
 
 
     # Creating agent
@@ -95,4 +100,8 @@ if __name__ == '__main__':
 
         agent.episode_reward = 0
         
-
+        #print(episode)
+        ax1 = plot_training_performance(ax1, total_reward_hist)
+        plt.tight_layout()
+        plt.draw()
+        #fig.pause(1)
