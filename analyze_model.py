@@ -59,8 +59,10 @@ dep_vars = dynamics_simulator.dependent_variable_history
 states_array = result2array(states)
 dep_vars_array = result2array(dep_vars)
 
-fig, (ax1, ax2) = plt.subplots(1,2, figsize=(12,8))
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
 ax1 = plot_trajectory_2d(ax1, states_array, dep_vars_array)
 ax2 = plot_velocity_2d(ax2, states_array, dep_vars_array)
-fig.show()
-fig.savefig("./plots/2d_tajectory.png")
+ax3 = plot_thrust_body_frame(ax3, dep_vars_array)
+ax4 = plot_thrust_TNW_frame(ax4, dep_vars_array)
+fig.tight_layout()
+fig.savefig("./plots/model_analysis.png")

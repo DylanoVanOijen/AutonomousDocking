@@ -1,4 +1,4 @@
-nan = float("NaN")
-num = float(10)
+a = [0,1,2,3,4]
 
-print(num < nan)
+print(a[0:2])
+print(a[2:5])

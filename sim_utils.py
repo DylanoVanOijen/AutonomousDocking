@@ -33,7 +33,7 @@ class SimSettings:
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
-        self.integrator_stepsize = 0.1
+        self.integrator_stepsize = 1.0
         self.propagator = propagation_setup.propagator.encke
         self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize) 
         self.bodies = self.get_environment_settings()
@@ -114,7 +114,8 @@ class SimSettings:
     
     def get_dependent_variables_to_save(self):
         dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth'),
-                                       propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , "Chaser", "Earth")                  
+                                       propagation_setup.dependent_variable.inertial_to_body_fixed_rotation_frame('Chaser'),
+                                       propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , 'Chaser', 'Chaser')                  
                                        ]
         return dependent_variables_to_save
     
