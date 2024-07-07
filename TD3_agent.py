@@ -12,8 +12,8 @@ class RewardComputer():
         self.port_loc = None
         self.last_rel_pos = None
 
-        self.eta = 1.0
-        self.kappa = 0.5
+        self.eta = 0.01
+        self.kappa = 0.005
         #self.lamda = 0.1
         #self.mu = 
         #self.delta = 100
@@ -25,12 +25,12 @@ class RewardComputer():
 
     def set_initial_rel_pos(self, state):
         self.last_rel_pos = state[0:3] - self.port_loc
-
-    def pos_R_simple(self, state):
+ 
+    def pos_R_simple (self, state):
         rel_pos = state[0:3] - self.port_loc
         rwd_position = -self.eta * np.linalg.norm(rel_pos)                          # reward for getting closer
         rwd_position_heading = -self.kappa * np.sign(np.dot(rel_pos, state[3:6]))   # reward for moving towards docking port
-
+        
         #return rwd_position + rwd_position_heading + rwd_smooth
         return rwd_position + rwd_position_heading
 
@@ -84,7 +84,6 @@ class Agent():
         return self.actor(state).cpu().data.numpy().flatten()
     
     def update(self, n_iter):
-        
         for i in range(n_iter):
             # Sample a batch of transitions from replay buffer:
             state, action_, reward, next_state, done = self.replay_buffer.sample(self.batch_size)

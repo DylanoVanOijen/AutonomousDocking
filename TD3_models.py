@@ -39,7 +39,7 @@ class ReplayBuffer:
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, max_action, name, model_ckpt_dir = "tmp/td3"):
+    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, max_action, name, model_ckpt_dir = "./tmp/td3"):
         super(ActorNetwork, self).__init__()
         self.name = name
         self.checkpoint_dir = model_ckpt_dir
@@ -72,7 +72,7 @@ class ActorNetwork(nn.Module):
 
         
 class CriticNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, name, model_ckpt_dir = "tmp/td3"):
+    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, name, model_ckpt_dir = "./tmp/td3"):
         super(CriticNetwork, self).__init__()
         self.name = name
         self.checkpoint_dir = model_ckpt_dir

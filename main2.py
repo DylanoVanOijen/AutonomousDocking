@@ -18,15 +18,15 @@ if __name__ == '__main__':
     random_seed = 0
     gamma = 0.99                # discount for future rewards
     batch_size = 100            # num of transitions sampled from replay buffer
-    lr_actor = 0.001            # learning rate of actor = alpha
-    lr_critic = 0.001           # learning rate of critic = beta
+    lr_actor = 0.0001            # learning rate of actor = alpha
+    lr_critic = 0.0001           # learning rate of critic = beta
     exploration_noise = 0.1 
     polyak = 0.995              # target policy update parameter (1-tau)
-    policy_noise = 0.2          # target policy smoothing noise
+    policy_noise = 0.1          # target policy smoothing noise
     noise_clip = 0.5
     policy_delay = 2            # delayed policy updates parameter
     max_episodes = 1000         # number of simulations to run
-    max_timesteps = 2000        # max timesteps in one episode
+    n_iters = 100               # Number of training iterations per episode
 
     fc1_dim = 400               # Number of nodes in fully connected linear layer 1
     fc2_dim = 300               # Number of nodes in fully connected linear layer 2
@@ -77,11 +77,9 @@ if __name__ == '__main__':
         dep_vars_array = result2array(dep_vars)
 
         t2 = time.process_time()
-        print("Epsiode runtime = ", t2-t1)
-        #print(states_array[0,0], states_array[-2,0], states_array[-1,0])
+        agent.update(n_iters)
+        t3 = time.process_time()
 
-        #print(states_array.shape[0])
-        agent.update(states_array.shape[0]-1)
 
         total_reward_hist.append(agent.episode_reward)
         moving_reward_hist.append(agent.episode_reward)
@@ -92,7 +90,8 @@ if __name__ == '__main__':
             agent.save_models()
             best_reward = agent.episode_reward
 
-        print(f"Episode: {episode}, Reward = {agent.episode_reward:.1f}, Mean {moving_avg_length} avg reward = {np.mean(moving_reward_hist)}")
+        #agent.save_models()
+        print(f"Episode: {episode}, Reward = {agent.episode_reward:.1f}, Mean {moving_avg_length} reward = {np.mean(moving_reward_hist):.1f}, proptime = {t2-t1:.1f}, traintime = {t3-t2:.1f}")
 
         agent.episode_reward = 0
         

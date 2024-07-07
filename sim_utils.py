@@ -113,11 +113,16 @@ class SimSettings:
         return integrator_settings
     
     def get_dependent_variables_to_save(self):
-        dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth')                  
+        dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth'),
+                                       propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , "Chaser", "Earth")                  
                                        ]
         return dependent_variables_to_save
     
     def setup_simulation(self, initial_state):
+        # reset GNC stuff
+        self.chaser_GNC.reset()
+
+        # get propagation settings
         propagator_settings = propagation_setup.propagator.translational(central_bodies = self.central_bodies,
                                                                         acceleration_models = self.acceleration_models,
                                                                         bodies_to_integrate = self.bodies_to_propagate,
@@ -127,7 +132,7 @@ class SimSettings:
                                                                         termination_settings = self.termination_settings,
                                                                         propagator = self.propagator,
                                                                         output_variables = self.dep_vars_to_save)
-              
+
         return propagator_settings
     
 
@@ -162,7 +167,7 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[1] += 10    
+        randomized_state[0] += -10    
 
         #self.observation =         
         return randomized_state
@@ -175,17 +180,23 @@ class ChaserGNC:
         self.target = None
         self.earth = None
 
+
+        self.dt = dt
         self.max_impulse = thrust*dt    # Newton seconds
         self.rel_tol = dt/10
 
+        self.reset()
+
+    def reset(self):
         self.last_state = None
         self.counter = 0
     
-        self.thrust_magnitude_Xp = 0
-        self.thrust_magnitude_Yp = 0
-        self.thrust_magnitude_Zp = 0
+        self.thrust_magnitude_Xp = 0.0
+        self.thrust_magnitude_Yp = 0.0
+        self.thrust_magnitude_Zp = 0.0
 
-        self.current_time = float("NaN")
+        # start point such that first processed GNC command will occur at t=0
+        self.processed_time = -self.dt
 
     def add_bodies(self, bodies: environment.SystemOfBodies):
         self.chaser = bodies.get_body("Chaser")
@@ -204,7 +215,6 @@ class ChaserGNC:
         self.agent = agent
 
     def get_thrust_magnitude_Xp(self, current_time: float):
-        #print("Called with ", current_time)
         self.update_GNC( current_time )
         return self.thrust_magnitude_Xp
         
@@ -218,14 +228,12 @@ class ChaserGNC:
     
 
     def update_GNC(self, current_time: float):
-        print(current_time, math.isnan( current_time ))
-        if( math.isnan( current_time ) ):
-	    # Set the model's current time to NaN, indicating that it needs to be updated 
-            self.current_time = float("NaN")
-        elif (current_time != self.current_time):
-        #elif not math.isclose(current_time, self.current_time, rel_tol = self.rel_tol):
-            #print("1")
-            #print(current_time, self.current_time)          
+        #print(current_time, self.processed_time+self.dt)
+        #print(math.isclose(current_time, self.processed_time+self.dt, rel_tol=self.rel_tol))
+        #if ( math.isclose(current_time, self.processed_time+self.dt, rel_tol=self.rel_tol) ) :
+        if ( current_time == self.processed_time+self.dt ) :
+            #elif not math.isclose(current_time, self.current_time, rel_tol = self.rel_tol):
+            #print(current_time, self.processed_time)          
             delta_pos_inertial = self.chaser.position-self.target.position
             delta_vel_inertial = self.chaser.velocity-self.target.velocity
 
@@ -236,32 +244,20 @@ class ChaserGNC:
 
             state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
             action = self.agent.compute_action(state)
-            #print("Action", action)
+            #print(state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.max_action)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
             
-
-            if current_time < 1:
-                # Calculate current thrust magnitude
-                self.thrust_magnitude_Xp = 000
-                self.thrust_magnitude_Yp = 000
-                self.thrust_magnitude_Zp = 000
-            else:
-                self.thrust_magnitude_Xp = action[0]*self.max_impulse
-                self.thrust_magnitude_Yp = action[1]*self.max_impulse
-                self.thrust_magnitude_Zp = action[2]*self.max_impulse
+            self.thrust_magnitude_Xp = action[0]*self.max_impulse
+            self.thrust_magnitude_Yp = action[1]*self.max_impulse
+            self.thrust_magnitude_Zp = action[2]*self.max_impulse
 
 
-            if self.current_time != 0.0:
+            if current_time != 0.0:
                 reward = self.agent.reward_computer.get_reward(state)
                 self.agent.replay_buffer.add((self.last_state, action, reward, state, float(False)))
                 self.agent.episode_reward += reward
                 self.counter += 1
-                #print(self.counter)
 
             self.last_state = state
-
-    	    # Set the model's current time, indicating that it has been updated
-            self.current_time = current_time
-            #print("2")
-            #print(current_time, self.current_time)          
+            self.processed_time = current_time      

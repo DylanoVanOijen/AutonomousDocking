@@ -4,8 +4,8 @@ import numpy as np
 vehicle_states = np.loadtxt("./PropagationHistory.dat")
 time = vehicle_states[:,0]
 n_times = len(time)
-chaser_states = vehicle_states[:,1:7]
-target_states = vehicle_states[:,7:13]
+target_states = vehicle_states[:,1:7]
+chaser_states = vehicle_states[:,7:13]
 delta_state_inertial = chaser_states-target_states
 
 dep_vars = np.loadtxt("./PropagationHistory_DependentVariables.dat")
