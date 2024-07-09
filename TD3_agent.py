@@ -12,17 +12,19 @@ class RewardComputer():
 
         self.is_docking_flag = False
         self.outside_cone_flag = False
+        self.too_far_flag = False
 
         self.KOS_size = docking_settings["KOS_size"]
         self.corridor_angle = docking_settings["corridor_angle"]
         self.corridor_base_radius = docking_settings["corridor_base_radius"]
+        self.max_distance = docking_settings["max_distance"]
         self.max_offdir_pos = docking_settings["max_offdir_pos"]
         self.max_offdir_vel = docking_settings["max_offdir_vel"]
         self.min_dir_vel = docking_settings["min_dir_vel"]
         self.max_dir_vel = docking_settings["max_dir_vel"]
         self.ideal_dir_vel = docking_settings["ideal_dir_vel"]
 
-        self.eta = reward_parameters["eta"],
+        self.eta = reward_parameters["eta"]
         self.kappa = reward_parameters["kappa"]
         self.lamda = reward_parameters["lamda"]
         self.mu = reward_parameters["mu"]
@@ -32,7 +34,7 @@ class RewardComputer():
         self.docking_pos_bonus_scaling = reward_parameters["docking_pos_bonus_scaling"]
         self.docking_vel_bonus_scaling = reward_parameters["docking_vel_bonus_scaling"]
 
-        self.indices = [0,1,2]
+        offdir_indices = [0, 1, 2] 
 
         if approach_direction == "pos_R-bar":
             if reward_type == "simple":
@@ -41,8 +43,7 @@ class RewardComputer():
                 # some logic to determine what elements of position array are needed to compute approach corridor
                 self.dir_index = 1
                 self.is_positive = -1   # = 1 if the approach happens from positive direction in TNW coordinates, else(-1)
-                offdir_indices = self.indices.remove(self.dir_index)
-                print(offdir_indices)
+                offdir_indices.remove(self.dir_index) 
                 self.offdir_index_1 = offdir_indices[0]
                 self.offdir_index_2 = offdir_indices[1]
 
@@ -72,22 +73,28 @@ class RewardComputer():
         vel_state = state[3:6]
         rel_pos = pos_state - self.port_loc
 
+        tot_reward = 0.0
         rwd_position = 25 - np.linalg.norm(rel_pos)  # reward for getting closer
         rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
         penal_taking_action = -self.lamda * np.linalg.norm(action)  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
         tot_reward = rwd_position + rwd_position_heading + penal_taking_action
         
         # Big penalty (+ termination) if outside docking corridor
-        if self.outside_cone(pos_state):
+        if self.outside_cone(rel_pos):
             tot_reward -= self.corridor_penalty
 
+        # Big penalty (+ termination) if gets too far away
+        if np.linalg.norm(rel_pos) > self.max_distance:
+            tot_reward -= self.corridor_penalty
+            self.too_far_flag = True
+
         # Ttermination) if docking position is reached
-        if self.is_docking(pos_state):
+        if self.is_docking(rel_pos):
 
             # Bonus depending on position accuracy
             docking_pos_rwd = 0
-            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(pos_state[self.offdir_index_1])
-            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(pos_state[self.offdir_index_2])
+            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(rel_pos[self.offdir_index_1])
+            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(rel_pos[self.offdir_index_2])
             tot_reward += docking_pos_rwd
 
             # Bonus depending on relative velocity
@@ -111,6 +118,9 @@ class RewardComputer():
     
     def outside_cone_interface(self, time:float):
         return self.outside_cone_flag
+    
+    def too_far_interface(self, time:float):
+        return self.too_far_flag
     
 
 class Agent():

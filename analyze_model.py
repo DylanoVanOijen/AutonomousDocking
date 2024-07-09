@@ -33,22 +33,22 @@ for port_name in port_locs:
 settings["docking_port_locations"] = port_locs
 
 # Creating agent
-agent = Agent(  alpha=settings["lr_actor"], beta=settings["lr_critic"], 
-                state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
-                fc1_dim=settings["fc1_dim"], fc2_dim=settings["fc2_dim"], 
-                max_action=settings["max_action"], batch_size=settings["batch_size"], 
-                gamma=settings["gamma"], polyak=settings["polyak"], 
-                policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
-                policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
-                approach_direction=settings["approach_direction"], reward_type=settings["reward_type"],
-                docking_ports=settings["docking_port_locations"])
+agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
+                        state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
+                        fc1_dim=settings["fc1_dim"], fc2_dim=settings["fc2_dim"], 
+                        max_action=settings["max_action"], batch_size=settings["batch_size"], 
+                        gamma=settings["gamma"], polyak=settings["polyak"], 
+                        policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
+                        policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
+                        approach_direction=settings["approach_direction"], 
+                        reward_type=settings["reward_type"], reward_parameters=settings["reward_parameters"], 
+                        docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"])
+    
 
 # Sim settings
 altitude = 450E3 # meter
 target_kepler_orbit = np.array([6378E3+altitude, 0, 0, 0, 0, 0])
-sim_settings = SimSettings(target_kepler_orbit)
-sim_settings.chaser_GNC.add_agent(agent)
-
+sim_settings = SimSettings(target_kepler_orbit, agent)
 
 initial_cartesian_state = sim_settings.get_randomized_chaser_state()
 prop = sim_settings.setup_simulation(initial_cartesian_state)

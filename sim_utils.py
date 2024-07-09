@@ -17,7 +17,7 @@ import numpy as np
 import math
 
 class SimSettings:
-    def __init__(self, target_kepler_orbit):
+    def __init__(self, target_kepler_orbit, agent):
         # Vehicle properties
         self.isp = 300      # Seconds
         self.thrust = 1000  # Newton
@@ -35,7 +35,7 @@ class SimSettings:
         self.central_bodies = ['Earth', 'Earth']
         self.integrator_stepsize = 1.0
         self.propagator = propagation_setup.propagator.encke
-        self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize) 
+        self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize, agent) 
         self.bodies = self.get_environment_settings()
         self.acceleration_models = self.get_acceleration_settings()
         self.integrator_settings = self.get_integrator_settings()
@@ -147,9 +147,10 @@ class SimSettings:
 
         outside_cone_termination_settings = propagation_setup.propagator.custom_termination(self.chaser_GNC.agent.reward_computer.outside_cone_interface)
         is_docking_termination_settings = propagation_setup.propagator.custom_termination(self.chaser_GNC.agent.reward_computer.is_docking_interface)
+        too_far_termination_settings = propagation_setup.propagator.custom_termination(self.chaser_GNC.agent.reward_computer.too_far_interface)
 
         # Define list of termination settings
-        termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings]
+        termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings, too_far_termination_settings]
 
         # Create hybrid termination settings object that terminates when one of multiple conditions are met
         hybrid_termination_settings = propagation_setup.propagator.hybrid_termination(termination_settings_list,
@@ -164,21 +165,23 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[0] += np.random.uniform(-20,-10)
-        randomized_state[1] += np.random.uniform(-5, 5)
-        randomized_state[2] += np.random.uniform(-5, 5)
+        randomized_state[1] += -20
+        #randomized_state[0] += np.random.uniform(-20,-10)
+        #randomized_state[1] += np.random.uniform(-5, 5)
+        #randomized_state[2] += np.random.uniform(-5, 5)
 
         #self.observation =         
         return randomized_state
     
 
 class ChaserGNC:
-    def __init__(self, thrust, dt):
+    def __init__(self, thrust, dt, agent):
         # Extract the STS and Earth bodies
         self.chaser = None
         self.target = None
         self.earth = None
-
+        
+        self.agent = agent
 
         self.dt = dt
         self.max_impulse = thrust*dt    # Newton seconds
@@ -210,9 +213,6 @@ class ChaserGNC:
         self.target_flight_conditions = bodies.get_body("Target").flight_conditions
         self.chaser_aerodynamic_angle_calculator = self.chaser_flight_conditions.aerodynamic_angle_calculator
         self.target_aerodynamic_angle_calculator = self.target_flight_conditions.aerodynamic_angle_calculator
-
-    def add_agent(self, agent:Agent):
-        self.agent = agent
 
     def get_thrust_magnitude_Xp(self, current_time: float):
         self.update_GNC( current_time )

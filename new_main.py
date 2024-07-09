@@ -12,6 +12,7 @@ docking_settings = {
     "KOS_size" : 25,
     "corridor_base_radius": 1,   # meter
     "corridor_angle" : np.deg2rad(20), 
+    "max_distance" : 50,
     "max_offdir_pos" : 0.2,
     "max_offdir_vel" : 0.01,
     "ideal_dir_vel" : 0.2,
@@ -42,7 +43,7 @@ settings = {"random_seed":42,
             "policy_noise":0.1,             # target policy smoothing noise
             "noise_clip":0.2,
             "policy_delay":2,               # delayed policy updates parameter
-            "max_episodes":100,             # number of simulations to run
+            "max_episodes":1,             # number of simulations to run
             "n_iters":100,                   # Number of training iterations per episode
             "fc1_dim":256,                  # Number of nodes in fully connected linear layer 1
             "fc2_dim":256,                  # Number of nodes in fully connected linear layer 2
