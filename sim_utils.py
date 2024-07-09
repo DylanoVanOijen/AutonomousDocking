@@ -29,7 +29,7 @@ class SimSettings:
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
-        self.max_simtime = 5.0*60.0            # 5 minutes
+        self.max_simtime = 2.0*60.0            # 5 minutes
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
@@ -168,7 +168,9 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[0] += -10    
+        randomized_state[0] += np.random.uniform(-20,-10)
+        randomized_state[1] += np.random.uniform(-5, 5)
+        randomized_state[2] += np.random.uniform(-5, 5)
 
         #self.observation =         
         return randomized_state
@@ -190,6 +192,7 @@ class ChaserGNC:
 
     def reset(self):
         self.last_state = None
+        self.last_action = None
         self.counter = 0
     
         self.thrust_magnitude_Xp = 0.0
@@ -229,12 +232,7 @@ class ChaserGNC:
     
 
     def update_GNC(self, current_time: float):
-        #print(current_time, self.processed_time+self.dt)
-        #print(math.isclose(current_time, self.processed_time+self.dt, rel_tol=self.rel_tol))
-        #if ( math.isclose(current_time, self.processed_time+self.dt, rel_tol=self.rel_tol) ) :
-        if ( current_time == self.processed_time+self.dt ) :
-            #elif not math.isclose(current_time, self.current_time, rel_tol = self.rel_tol):
-            #print(current_time, self.processed_time)          
+        if ( current_time == self.processed_time+self.dt ) :       
             delta_pos_inertial = self.chaser.position-self.target.position
             delta_vel_inertial = self.chaser.velocity-self.target.velocity
 
@@ -253,12 +251,13 @@ class ChaserGNC:
             self.thrust_magnitude_Yp = action[1]*self.max_impulse
             self.thrust_magnitude_Zp = action[2]*self.max_impulse
 
-
+            #print(action)
             if current_time != 0.0:
-                reward = self.agent.reward_computer.get_reward(state)
+                reward = self.agent.reward_computer.get_reward(state, self.last_action)
                 self.agent.replay_buffer.add((self.last_state, action, reward, state, float(False)))
                 self.agent.episode_reward += reward
                 self.counter += 1
 
             self.last_state = state
+            self.last_action = action
             self.processed_time = current_time      

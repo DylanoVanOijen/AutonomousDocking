@@ -16,6 +16,9 @@ def plot_trajectory_2d(axis, inertial_states, dep_vars):
     axis.plot(time, delta_pos_tnw[:,1], label = "N", color = "green", linestyle = "solid")
     axis.plot(time, delta_pos_tnw[:,2], label = "W", color = "blue", linestyle = "solid")
     axis.set_xlim(time[0], time[-1])
+    axis.plot([time[0], time[-1]], [-2,-2], label = "Port loc T", color = "red", linestyle = "dotted")
+    axis.plot([time[0], time[-1]], [-2,-2], label = "Port loc N", color = "green", linestyle = "dotted")
+    axis.plot([time[0], time[-1]], [0,0], label = "Port loc W", color = "blue", linestyle = "dotted")
     axis.set_title("Position of chaser in target TNW frame")
     axis.set_xlabel("t-t$_{0}$ [s]")
     axis.set_ylabel("$\Delta r_{i}$ [m]")
@@ -94,20 +97,21 @@ def plot_trajectory_3d(axis, inertial_states, dep_vars):
     chaser_states = inertial_states[:,7:13]
     delta_state_inertial = chaser_states-target_states
     n_times = target_states.shape[0]
-    print(n_times)
 
     tnw_to_inertial_array = dep_vars[:, 1:10]
     tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(n_times, 3,3)
     delta_pos_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix[i, :, :]), delta_state_inertial[i,0:3]) for i in range(n_times)])
+
+    max_value = np.max(delta_pos_tnw)
 
     axis.plot3D(delta_pos_tnw[:,0], delta_pos_tnw[:,1], delta_pos_tnw[:,2], 'blue')
     axis.set_title("Position of chaser in target TNW frame")
     axis.set_xlabel("T [x]")
     axis.set_ylabel("N [m]")
     axis.set_zlabel("W [m]")
-    axis.set_xlim(-200,200)
-    axis.set_ylim(-200,200)
-    axis.set_zlim(-200,200)
+    axis.set_xlim(-max_value,max_value)
+    axis.set_ylim(-max_value,max_value)
+    axis.set_zlim(-max_value,max_value)
     axis.grid()
 
     return axis
@@ -124,6 +128,7 @@ def plot_training_performance(ax, reward):
     ax.set_xlabel("Episode [-]")
     ax.set_ylabel("Reward value [-]")
     ax.set_xlim(0,len(episodes))
+    #ax.set_yscale('log')
     ax.legend()
 
     return ax

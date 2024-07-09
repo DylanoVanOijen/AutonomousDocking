@@ -15,6 +15,9 @@ import os
 import time
 
 if __name__ == '__main__':    
+    # Performance plot init
+    fig, ((ax1))= plt.subplots(1,1, figsize=(8,5))
+
     ###### Hyperparameters ######
     moving_avg_length = 10  # number of episodes over which to compute moving average
     random_seed = 0
@@ -25,14 +28,15 @@ if __name__ == '__main__':
     exploration_noise = 0.1 
     polyak = 0.995              # target policy update parameter (1-tau)
     policy_noise = 0.1          # target policy smoothing noise
-    noise_clip = 0.5
+    noise_clip = 0.2
     policy_delay = 2            # delayed policy updates parameter
-    max_episodes = 1000         # number of simulations to run
-    n_iters = 100               # Number of training iterations per episode
+    max_episodes = 100        # number of simulations to run
+    n_iters = 50               # Number of training iterations per episode
 
-    fc1_dim = 400               # Number of nodes in fully connected linear layer 1
-    fc2_dim = 300               # Number of nodes in fully connected linear layer 2
+    fc1_dim = 256               # Number of nodes in fully connected linear layer 1
+    fc2_dim = 256               # Number of nodes in fully connected linear layer 2
 
+    save_each_epoch = False      # Flag to save the models after each epoch instead of only when the results improved
     approach_direction = "pos_R-bar"    # choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
     reward_type = "simple"           # choose from simple, full or ...
 
@@ -42,10 +46,6 @@ if __name__ == '__main__':
     # Setting seed
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)   
-
-    # Performance plot init
-    fig, ((ax1))= plt.subplots(1,1, figsize=(8,5))
-
 
     # Creating agent
     agent = Agent(alpha=lr_actor, beta=lr_critic, state_dim=observation_space_size, action_dim=action_space_size, 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     moving_reward_hist = []
     total_reward_hist = []
 
-    best_reward = 0
+    best_reward = 0.0
 
     # run simulations
     for episode in range(max_episodes):
@@ -91,7 +91,12 @@ if __name__ == '__main__':
         if episode+1 > moving_avg_length:
             moving_reward_hist.pop(0)
 
-        if agent.episode_reward > best_reward:
+        if episode == 0:
+            best_reward = agent.episode_reward
+
+        if save_each_epoch:
+            agent.save_models()
+        elif not save_each_epoch and agent.episode_reward >= best_reward:
             agent.save_models()
             best_reward = agent.episode_reward
 
@@ -104,4 +109,4 @@ if __name__ == '__main__':
         ax1 = plot_training_performance(ax1, total_reward_hist)
         plt.tight_layout()
         plt.draw()
-        plt.pause(0.001)
+        plt.pause(0.05)

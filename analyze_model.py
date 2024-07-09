@@ -2,41 +2,38 @@ from post_process_utils import *
 from TD3_agent import *
 from sim_utils import *
 
+import json
+
+from sim_utils import *
+from TD3_agent import *
+from post_process_utils import *
+
+# Tudat imports
 from tudatpy.kernel import numerical_simulation
 from tudatpy.data import save2txt
 from tudatpy.util import result2array
 
+# General imports
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import time
+
 folder = "./tmp/td3/"
 
-###### Hyperparameters ######
-moving_avg_length = 10  # number of episodes over which to compute moving average
-random_seed = 0
-gamma = 0.99                # discount for future rewards
-batch_size = 100            # num of transitions sampled from replay buffer
-lr_actor = 0.0001            # learning rate of actor = alpha
-lr_critic = 0.0001           # learning rate of critic = beta
-exploration_noise = 0.1 
-polyak = 0.995              # target policy update parameter (1-tau)
-policy_noise = 0.1          # target policy smoothing noise
-noise_clip = 0.5
-policy_delay = 2            # delayed policy updates parameter
-max_episodes = 1000         # number of simulations to run
-n_iters = 100               # Number of training iterations per episode
-
-fc1_dim = 400               # Number of nodes in fully connected linear layer 1
-fc2_dim = 300               # Number of nodes in fully connected linear layer 2
-
-approach_direction = "pos_R-bar"    # choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
-reward_type = "simple"           # choose from simple, full or ...
-
-action_space_size = 3   # for each direction, pos, neg or no thrust
-observation_space_size = 6 # pos and vel in TNW frame of Target
+# Reading the data from the file and converting it back to a dictionary
+with open(folder+'settings.txt', 'r') as convert_file:
+    settings = json.load(convert_file)
 
 # Creating agent
-agent = Agent(alpha=lr_actor, beta=lr_critic, state_dim=observation_space_size, action_dim=action_space_size, 
-                fc1_dim=fc1_dim, fc2_dim=fc2_dim, max_action=1, batch_size=batch_size, gamma=gamma, 
-                polyak=polyak, policy_noise=policy_noise, noise_clip=noise_clip, policy_delay=policy_delay,
-                exploration_noise=exploration_noise, approach_direction=approach_direction, reward_type=reward_type)
+agent = Agent(  alpha=settings["lr_actor"], beta=settings["lr_critic"], 
+                state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
+                fc1_dim=settings["fc1_dim"], fc2_dim=settings["fc2_dim"], 
+                max_action=settings["max_action"], batch_size=settings["batch_size"], 
+                gamma=settings["gamma"], polyak=settings["polyak"], 
+                policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
+                policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
+                approach_direction=settings["approach_direction"], reward_type=settings["reward_type"])
 
 # Sim settings
 altitude = 450E3 # meter
