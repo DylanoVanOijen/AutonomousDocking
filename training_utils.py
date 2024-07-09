@@ -1,5 +1,3 @@
-import pickle
-
 # Module imports
 from sim_utils import *
 from TD3_agent import *
@@ -15,44 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import time
-
-
-class TrainSettings:
-    def __init__(self, seed, batch_size, lr_actor, lr_critic, exploration_noise, polyak,
-                 policy_noise, noise_clip, policy_delay, max_episodes, n_iters, fc1_dim, fc2_dim,
-                 save_each_epoch, approach_direction, reward_type, action_space_size, observation_space_size):
     
-        self.seed = seed
-        self.batch_size = batch_size
-        self.lr_actor = lr_actor
-        self.lr_critic = lr_critic
-        self.exploration_noise = exploration_noise
-        self.polyak = polyak
-        self.policy_noise = policy_noise
-        self.noise_clip = noise_clip
-        self.policy_delay = policy_delay
-        self.max_episodes = max_episodes
-        self.n_iters = n_iters
-        self.fc1_dim = fc1_dim
-        self.fc2_dim = fc2_dim
-        self.save_each_epoch = save_each_epoch
-        self.approach_direction = approach_direction
-        self.reward_type = reward_type
-        self.action_space_size = action_space_size
-        self.observation_space_size = observation_space_size
-
-    def save_to_file(self, filename):
-        with open(filename, 'wb') as file:
-            pickle.dump(self.__dict__, file)
-
-    @classmethod
-    def load_from_file(cls, filename):
-        with open(filename, 'rb') as file:
-            obj = cls.__new__(cls)
-            obj.__dict__.update(pickle.load(file))
-        return obj
-    
-
 class Trainer:
     def __init__(self, settings:dict):
         self.fig, ((self.ax1))= plt.subplots(1,1, figsize=(8,5))
@@ -64,14 +25,16 @@ class Trainer:
         np.random.seed(settings["random_seed"])  
 
         # Creating agent
-        self.agent = Agent(  alpha=settings["lr_actor"], beta=settings["lr_critic"], 
+        self.agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
                         state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
                         fc1_dim=settings["fc1_dim"], fc2_dim=settings["fc2_dim"], 
                         max_action=settings["max_action"], batch_size=settings["batch_size"], 
                         gamma=settings["gamma"], polyak=settings["polyak"], 
                         policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
                         policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
-                        approach_direction=settings["approach_direction"], reward_type=settings["reward_type"])
+                        approach_direction=settings["approach_direction"], 
+                        reward_type=settings["reward_type"], reward_parameters=settings["reward_parameters"], 
+                        docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"])
     
         # Sim settings
         self.altitude = 450E3 # meter

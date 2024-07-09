@@ -145,19 +145,15 @@ class SimSettings:
             terminate_exactly_on_final_condition=True
         )
 
-        # Altitude
-        #lower_altitude_termination_settings = propagation_setup.propagator.dependent_variable_termination(
-        #    dependent_variable_settings=propagation_setup.dependent_variable.altitude('Capsule', 'Earth'),
-        #    limit_value=termination_altitude,
-        #    use_as_lower_limit=True,
-        #    terminate_exactly_on_final_condition=False
-        #)
+        outside_cone_termination_settings = propagation_setup.propagator.custom_termination(self.chaser_GNC.agent.reward_computer.outside_cone_interface)
+        is_docking_termination_settings = propagation_setup.propagator.custom_termination(self.chaser_GNC.agent.reward_computer.is_docking_interface)
+
         # Define list of termination settings
-        termination_settings_list = [time_termination_settings]
+        termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings]
 
         # Create hybrid termination settings object that terminates when one of multiple conditions are met
         hybrid_termination_settings = propagation_setup.propagator.hybrid_termination(termination_settings_list,
-                                                                                    fulfill_single_condition=False)
+                                                                                    fulfill_single_condition=True)
         return hybrid_termination_settings
     
     def get_cart_state(self, kepler_state):

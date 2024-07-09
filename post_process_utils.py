@@ -92,7 +92,7 @@ def plot_thrust_TNW_frame(axis, dep_vars):
     return axis
 
 
-def plot_trajectory_3d(axis, inertial_states, dep_vars):
+def plot_trajectory_3d(axis, inertial_states, dep_vars, port_loc):
     target_states = inertial_states[:,1:7]
     chaser_states = inertial_states[:,7:13]
     delta_state_inertial = chaser_states-target_states
@@ -102,9 +102,10 @@ def plot_trajectory_3d(axis, inertial_states, dep_vars):
     tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(n_times, 3,3)
     delta_pos_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix[i, :, :]), delta_state_inertial[i,0:3]) for i in range(n_times)])
 
-    max_value = np.max(delta_pos_tnw)
+    max_value = np.max(np.abs(delta_pos_tnw))
 
-    axis.plot3D(delta_pos_tnw[:,0], delta_pos_tnw[:,1], delta_pos_tnw[:,2], 'blue')
+    axis.plot3D(delta_pos_tnw[:,0], delta_pos_tnw[:,1], delta_pos_tnw[:,2], color='blue', label="Trajectory")
+    axis.scatter(port_loc[0], port_loc[1], port_loc[2], color='red', label="Target Docking Port")
     axis.set_title("Position of chaser in target TNW frame")
     axis.set_xlabel("T [x]")
     axis.set_ylabel("N [m]")
@@ -112,6 +113,7 @@ def plot_trajectory_3d(axis, inertial_states, dep_vars):
     axis.set_xlim(-max_value,max_value)
     axis.set_ylim(-max_value,max_value)
     axis.set_zlim(-max_value,max_value)
+    axis.legend()
     axis.grid()
 
     return axis

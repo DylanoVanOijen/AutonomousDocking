@@ -25,6 +25,13 @@ folder = "./tmp/td3/"
 with open(folder+'settings.txt', 'r') as convert_file:
     settings = json.load(convert_file)
 
+# Convert docking port locations back from list to NDarray
+port_locs = settings["docking_port_locations"]
+for port_name in port_locs:
+    port_loc_array = np.array(port_locs[port_name])
+    port_locs[port_name] = port_loc_array
+settings["docking_port_locations"] = port_locs
+
 # Creating agent
 agent = Agent(  alpha=settings["lr_actor"], beta=settings["lr_critic"], 
                 state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
@@ -33,7 +40,8 @@ agent = Agent(  alpha=settings["lr_actor"], beta=settings["lr_critic"],
                 gamma=settings["gamma"], polyak=settings["polyak"], 
                 policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
                 policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
-                approach_direction=settings["approach_direction"], reward_type=settings["reward_type"])
+                approach_direction=settings["approach_direction"], reward_type=settings["reward_type"],
+                docking_ports=settings["docking_port_locations"])
 
 # Sim settings
 altitude = 450E3 # meter
@@ -66,8 +74,11 @@ fig.tight_layout()
 fig.savefig("./plots/model_analysis.png")
 
 
+port_loc = settings["docking_port_locations"]["pos_R-bar"]
 fig2 = plt.figure()
 ax_3d = fig2.add_subplot(projection='3d')
-ax_3d = plot_trajectory_3d(ax_3d, states_array, dep_vars_array)
+ax_3d = plot_trajectory_3d(ax_3d, states_array, dep_vars_array, port_loc)
 fig2.tight_layout()
 fig2.savefig("./plots/trajectory_3D.png")
+
+plt.show()

@@ -3,48 +3,120 @@ from TD3_models import *
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class RewardComputer():
-    def __init__(self, approach_direction, reward_type):
-        self.docking_ports = {  # w.r.t. to the COM of the Target vehicle in its TNW frame 
-            "pos_R-bar": np.array([-2, -2 , 0])
-        }
+    def __init__(self, approach_direction, reward_type, reward_parameters, docking_ports, docking_settings):
+        self.docking_ports = docking_ports
 
         self.reward_function = None
         self.port_loc = None
         self.last_rel_pos = None
 
-        self.eta = 0.1
-        self.kappa = 0.1
-        self.lamda = 0.1  # tanh scaling
-        self.mu = 0.05
-        #self.delta = 100
+        self.is_docking_flag = False
+        self.outside_cone_flag = False
+
+        self.KOS_size = docking_settings["KOS_size"]
+        self.corridor_angle = docking_settings["corridor_angle"]
+        self.corridor_base_radius = docking_settings["corridor_base_radius"]
+        self.max_offdir_pos = docking_settings["max_offdir_pos"]
+        self.max_offdir_vel = docking_settings["max_offdir_vel"]
+        self.min_dir_vel = docking_settings["min_dir_vel"]
+        self.max_dir_vel = docking_settings["max_dir_vel"]
+        self.ideal_dir_vel = docking_settings["ideal_dir_vel"]
+
+        self.eta = reward_parameters["eta"],
+        self.kappa = reward_parameters["kappa"]
+        self.lamda = reward_parameters["lamda"]
+        self.mu = reward_parameters["mu"]
+        self.corridor_penalty = reward_parameters["corridor_penalty"]
+        self.docking_pos_bonus = reward_parameters["docking_pos_bonus"]
+        self.docking_vel_bonus = reward_parameters["docking_vel_bonus"]
+        self.docking_pos_bonus_scaling = reward_parameters["docking_pos_bonus_scaling"]
+        self.docking_vel_bonus_scaling = reward_parameters["docking_vel_bonus_scaling"]
+
+        self.indices = [0,1,2]
 
         if approach_direction == "pos_R-bar":
             if reward_type == "simple":
-                self.reward_function = self.pos_R_simple
                 self.port_loc = self.docking_ports[approach_direction]
 
-    def set_initial_rel_pos(self, state):
-        self.last_rel_pos = state[0:3] - self.port_loc
- 
-    def pos_R_simple (self, state, action):
-        rel_pos = state[0:3] - self.port_loc
-        rwd_position = -self.eta * np.linalg.norm(rel_pos)                          # reward for getting closer
-        rwd_position_heading = -self.kappa * np.tanh(self.lamda * np.dot(rel_pos,state[3:6]))
-        penal_taking_action = -self.mu * np.linalg.norm(action)
-        return rwd_position + rwd_position_heading + penal_taking_action
+                # some logic to determine what elements of position array are needed to compute approach corridor
+                self.dir_index = 1
+                self.is_positive = -1   # = 1 if the approach happens from positive direction in TNW coordinates, else(-1)
+                offdir_indices = self.indices.remove(self.dir_index)
+                print(offdir_indices)
+                self.offdir_index_1 = offdir_indices[0]
+                self.offdir_index_2 = offdir_indices[1]
 
-    def compute_final_reward_bonus(self, state):
-        return
+    def outside_cone(self, pos):
+        self.outside_cone_flag = True
+        if np.linalg.norm(pos) < self.KOS_size:
+            if np.sqrt(pos[self.offdir_index_1]**2 + pos[self.offdir_index_2]**2) > self.corridor_base_radius + self.is_positive*pos[self.dir_index]*np.tan(self.corridor_angle):
+                return True
+            else:
+                return False
+        else:
+            return False
+        
+    def is_docking(self, pos):
+        self.is_docking_flag = True
+        if np.linalg.norm(pos) < self.KOS_size:
+            if self.is_positive*pos[self.dir_index] < 0:
+                return True
+            else:
+                return False
+        else:
+            return False
 
 
     def get_reward(self, state, action):
-        return self.reward_function(state, action)
+        pos_state = state[0:3]
+        vel_state = state[3:6]
+        rel_pos = pos_state - self.port_loc
 
+        rwd_position = 25 - np.linalg.norm(rel_pos)  # reward for getting closer
+        rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
+        penal_taking_action = -self.lamda * np.linalg.norm(action)  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
+        tot_reward = rwd_position + rwd_position_heading + penal_taking_action
+        
+        # Big penalty (+ termination) if outside docking corridor
+        if self.outside_cone(pos_state):
+            tot_reward -= self.corridor_penalty
+
+        # Ttermination) if docking position is reached
+        if self.is_docking(pos_state):
+
+            # Bonus depending on position accuracy
+            docking_pos_rwd = 0
+            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(pos_state[self.offdir_index_1])
+            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(pos_state[self.offdir_index_2])
+            tot_reward += docking_pos_rwd
+
+            # Bonus depending on relative velocity
+            docking_vel_rwd = 0
+            docking_vel_rwd += self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_1])
+            docking_vel_rwd += self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_1])
+            docking_vel_rwd += self.docking_vel_bonus - self.docking_vel_bonus_scaling*(np.abs(vel_state[self.dir_index])-self.ideal_dir_vel)
+
+            tot_reward += docking_vel_rwd
+
+        #print("\n New epoch")
+        #print(state[0:3], state[3:6], action)
+        #print(rwd_position, rwd_position_heading, penal_taking_action)
+        
+        return tot_reward
+    
+    # Functions to serve merely as interface to tell tudat to terminate simulation if docking occurs
+    # or if the vehicle gets outside the cone
+    def is_docking_interface(self, time:float):
+        return self.is_docking_flag
+    
+    def outside_cone_interface(self, time:float):
+        return self.outside_cone_flag
+    
 
 class Agent():
     def __init__(self, alpha, beta, state_dim, action_dim, fc1_dim, fc2_dim, max_action,
                  batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,
-                 exploration_noise, approach_direction, reward_type):
+                 exploration_noise, approach_direction, reward_type, reward_parameters, docking_ports, docking_settings):
         
         self.actor = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="actor")
         self.actor_target = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="target_actor")
@@ -74,8 +146,12 @@ class Agent():
         self.episode_reward = 0
         self.approach_direction = approach_direction
         self.reward_type = reward_type
+        self.reward_parameters = reward_parameters
+        self.docking_ports = docking_ports
+        self.docking_settings = docking_settings
 
-        self.reward_computer = RewardComputer(self.approach_direction, self.reward_type)
+        self.reward_computer = RewardComputer(self.approach_direction, self.reward_type, self.reward_parameters, 
+                                              self.docking_ports, self.docking_settings)
         
     
     def compute_action(self, state):
