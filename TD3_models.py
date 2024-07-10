@@ -39,10 +39,10 @@ class ReplayBuffer:
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, max_action, name, model_ckpt_dir = "./tmp/td3"):
+    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, max_action, name, model_ckpt_folder):
         super(ActorNetwork, self).__init__()
         self.name = name
-        self.checkpoint_dir = model_ckpt_dir
+        self.checkpoint_dir = model_ckpt_folder
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_td3')
         self.max_action = max_action
 
@@ -72,10 +72,10 @@ class ActorNetwork(nn.Module):
 
         
 class CriticNetwork(nn.Module):
-    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, name, model_ckpt_dir = "./tmp/td3"):
+    def __init__(self, state_dim, action_dim, fc1_dim, fc2_dim, name, model_ckpt_folder):
         super(CriticNetwork, self).__init__()
         self.name = name
-        self.checkpoint_dir = model_ckpt_dir
+        self.checkpoint_dir = model_ckpt_folder
         self.checkpoint_file = os.path.join(self.checkpoint_dir, name+'_td3')
 
         self.state_dim = state_dim

@@ -109,4 +109,4 @@ if __name__ == '__main__':
         ax1 = plot_training_performance(ax1, total_reward_hist)
         plt.tight_layout()
         plt.draw()
-        plt.pause(0.05)
+        plt.pause(0.01)

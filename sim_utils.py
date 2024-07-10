@@ -165,12 +165,12 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[1] += -20
+        randomized_state[0] += -10
         #randomized_state[0] += np.random.uniform(-20,-10)
         #randomized_state[1] += np.random.uniform(-5, 5)
         #randomized_state[2] += np.random.uniform(-5, 5)
 
-        #self.observation =         
+        #self.observation =                 
         return randomized_state
     
 

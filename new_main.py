@@ -4,6 +4,13 @@ from training_utils import *
 # General imports
 import json 
 
+main_dir = "./TrainingOutputs/"
+sub_dir = "main/"
+
+save_dir = main_dir+sub_dir
+if (not os.path.isdir(save_dir)):
+    os.mkdir(save_dir)
+
 docking_port_locations = {  # w.r.t. to the COM of the Target vehicle in its TNW frame 
             "pos_R-bar": np.array([-2, -2 , 0])
         }
@@ -21,11 +28,12 @@ docking_settings = {
 }
 
 reward_parameters = {
-    "eta" : 5,
+    "eta" : 10,
     "kappa" : 0.1,  # tanh scaling
     "lamda" : 1,  # 
     "mu" : 0.05,
-    "corridor_penalty" : 1000,
+    "corridor_penalty" : 500,
+    "far_away_penalty" : 1000,
     "docking_pos_bonus" : 1000,
     "docking_vel_bonus" : 1000,
     "docking_pos_bonus_scaling" : 1000,
@@ -36,17 +44,17 @@ settings = {"random_seed":42,
             "max_action":1,
             "gamma": 0.99,
             "batch_size": 100,              # num of transitions sampled from replay buffer
-            "lr_actor":0.0001,              # learning rate of actor = alpha
-            "lr_critic":0.0001,             # learning rate of critic = beta
+            "lr_actor":0.00001,              # learning rate of actor = alpha
+            "lr_critic":0.00001,             # learning rate of critic = beta
             "exploration_noise":0.2, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
-            "policy_noise":0.1,             # target policy smoothing noise
-            "noise_clip":0.2,
+            "policy_noise":0.2,             # target policy smoothing noise
+            "noise_clip":0.5,
             "policy_delay":2,               # delayed policy updates parameter
-            "max_episodes":1,             # number of simulations to run
+            "max_episodes":100,             # number of simulations to run
             "n_iters":100,                   # Number of training iterations per episode
-            "fc1_dim":256,                  # Number of nodes in fully connected linear layer 1
-            "fc2_dim":256,                  # Number of nodes in fully connected linear layer 2
+            "fc1_dim":512,                  # Number of nodes in fully connected linear layer 1
+            "fc2_dim":512,                  # Number of nodes in fully connected linear layer 2
             "save_each_episode":False,        # Flag to save the models after each epoch instead of only when the results improved
             "approach_direction":"pos_R-bar",# choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
             "reward_type":"simple",          # choose from simple, full or ...
@@ -57,17 +65,18 @@ settings = {"random_seed":42,
             "reward_parameters":reward_parameters
             }
 
-
-
-save_folder = "./tmp/td3/"
+trainer = Trainer(settings,save_dir)
+trainer.start_training()
 
 # ND array not serializable, so must convert to lists for storage
 for port_name in docking_port_locations:
     port_loc_list = docking_port_locations[port_name].tolist()
     docking_port_locations[port_name] = port_loc_list
 
-with open(save_folder+'settings.txt', 'w') as convert_file: 
+with open(save_dir+'settings.txt', 'w') as convert_file: 
      convert_file.write(json.dumps(settings))
 
-trainer = Trainer(settings)
+trainer = Trainer(settings, save_dir)
 trainer.start_training()
+
+

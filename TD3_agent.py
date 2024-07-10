@@ -29,6 +29,7 @@ class RewardComputer():
         self.lamda = reward_parameters["lamda"]
         self.mu = reward_parameters["mu"]
         self.corridor_penalty = reward_parameters["corridor_penalty"]
+        self.far_away_penalty = reward_parameters["far_away_penalty"]
         self.docking_pos_bonus = reward_parameters["docking_pos_bonus"]
         self.docking_vel_bonus = reward_parameters["docking_vel_bonus"]
         self.docking_pos_bonus_scaling = reward_parameters["docking_pos_bonus_scaling"]
@@ -48,7 +49,6 @@ class RewardComputer():
                 self.offdir_index_2 = offdir_indices[1]
 
     def outside_cone(self, pos):
-        self.outside_cone_flag = True
         if np.linalg.norm(pos) < self.KOS_size:
             if np.sqrt(pos[self.offdir_index_1]**2 + pos[self.offdir_index_2]**2) > self.corridor_base_radius + self.is_positive*pos[self.dir_index]*np.tan(self.corridor_angle):
                 return True
@@ -58,8 +58,9 @@ class RewardComputer():
             return False
         
     def is_docking(self, pos):
-        self.is_docking_flag = True
+        #print(pos)
         if np.linalg.norm(pos) < self.KOS_size:
+            #print(self.is_positive, pos[self.dir_index])
             if self.is_positive*pos[self.dir_index] < 0:
                 return True
             else:
@@ -79,17 +80,25 @@ class RewardComputer():
         penal_taking_action = -self.lamda * np.linalg.norm(action)  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
         tot_reward = rwd_position + rwd_position_heading + penal_taking_action
         
+        self.is_docking_flag = self.is_docking(rel_pos)
+        self.outside_cone_flag = self.outside_cone(rel_pos)
+        self.too_far_flag = np.linalg.norm(rel_pos) > self.max_distance
+
         # Big penalty (+ termination) if outside docking corridor
-        if self.outside_cone(rel_pos):
+        if self.outside_cone_flag:
             tot_reward -= self.corridor_penalty
+            print("Sim should terminate: vehicle outside cone")
+
 
         # Big penalty (+ termination) if gets too far away
-        if np.linalg.norm(rel_pos) > self.max_distance:
-            tot_reward -= self.corridor_penalty
-            self.too_far_flag = True
+        if self.too_far_flag:
+            tot_reward -= self.far_away_penalty
+            print("Sim should terminate: vehicle too far away")
+
 
         # Ttermination) if docking position is reached
-        if self.is_docking(rel_pos):
+        if self.is_docking_flag:
+            print("Sim should terminate: vehicle is docking!")
 
             # Bonus depending on position accuracy
             docking_pos_rwd = 0
@@ -126,20 +135,21 @@ class RewardComputer():
 class Agent():
     def __init__(self, alpha, beta, state_dim, action_dim, fc1_dim, fc2_dim, max_action,
                  batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,
-                 exploration_noise, approach_direction, reward_type, reward_parameters, docking_ports, docking_settings):
+                 exploration_noise, approach_direction, reward_type, reward_parameters, docking_ports, docking_settings,
+                 save_folder):
         
-        self.actor = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="actor")
-        self.actor_target = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="target_actor")
+        self.actor = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="actor", model_ckpt_folder=save_folder)
+        self.actor_target = ActorNetwork(state_dim, action_dim, fc1_dim, fc2_dim, max_action, name="target_actor", model_ckpt_folder=save_folder)
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=alpha)
         
-        self.critic_1 = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="critic_1")
-        self.critic_1_target = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="target_critic_1")
+        self.critic_1 = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="critic_1", model_ckpt_folder=save_folder)
+        self.critic_1_target = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="target_critic_1", model_ckpt_folder=save_folder)
         self.critic_1_target.load_state_dict(self.critic_1.state_dict())
         self.critic_1_optimizer = optim.Adam(self.critic_1.parameters(), lr=beta)
         
-        self.critic_2 = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="critic_2")
-        self.critic_2_target = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="target_critic_2")
+        self.critic_2 = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="critic_2", model_ckpt_folder=save_folder)
+        self.critic_2_target = CriticNetwork(state_dim, action_dim, fc1_dim, fc2_dim, name="target_critic_2", model_ckpt_folder=save_folder)
         self.critic_2_target.load_state_dict(self.critic_2.state_dict())
         self.critic_2_optimizer = optim.Adam(self.critic_2.parameters(), lr=beta)
         

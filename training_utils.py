@@ -15,7 +15,7 @@ import os
 import time
     
 class Trainer:
-    def __init__(self, settings:dict):
+    def __init__(self, settings:dict, save_folder):
         self.fig, ((self.ax1))= plt.subplots(1,1, figsize=(8,5))
 
         self.settings = settings
@@ -34,7 +34,8 @@ class Trainer:
                         policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
                         approach_direction=settings["approach_direction"], 
                         reward_type=settings["reward_type"], reward_parameters=settings["reward_parameters"], 
-                        docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"])
+                        docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"],
+                        save_folder=save_folder)
     
         # Sim settings
         self.altitude = 450E3 # meter
@@ -87,7 +88,7 @@ class Trainer:
 
         self.agent.episode_reward = 0
         
-        self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
-        plt.tight_layout()
-        plt.draw()
-        plt.pause(0.05)
+        #self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
+        #plt.tight_layout()
+        #plt.draw()
+        #plt.pause(0.05)
