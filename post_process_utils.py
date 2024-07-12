@@ -105,7 +105,9 @@ def plot_trajectory_3d(axis, inertial_states, dep_vars, port_loc):
     max_value = np.max(np.abs(delta_pos_tnw))
 
     axis.plot3D(delta_pos_tnw[:,0], delta_pos_tnw[:,1], delta_pos_tnw[:,2], color='blue', label="Trajectory")
-    axis.scatter(port_loc[0], port_loc[1], port_loc[2], color='red', label="Target Docking Port")
+    axis.scatter(port_loc[0], port_loc[1], port_loc[2], color='black', label="Target Docking Port")
+    axis.scatter(delta_pos_tnw[0,0], delta_pos_tnw[0,1], delta_pos_tnw[0,2], color='green', label="Initial position")
+    axis.scatter(delta_pos_tnw[-1,0], delta_pos_tnw[-1,1],delta_pos_tnw[-1,2], color='red', label="Final position")
     axis.set_title("Position of chaser in target TNW frame")
     axis.set_xlabel("T [x]")
     axis.set_ylabel("N [m]")
@@ -132,5 +134,6 @@ def plot_training_performance(ax, reward):
     ax.set_xlim(0,len(episodes))
     #ax.set_yscale('log')
     ax.legend()
+    ax.grid()
 
     return ax

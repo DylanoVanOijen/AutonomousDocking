@@ -26,10 +26,10 @@ docking_settings = {
 reward_parameters = {
     "eta" : 10,
     "kappa" : 0.1,  # tanh scaling
-    "lamda" : 1,  # 
+    "lamda" : 0.1,  # 
     "mu" : 0.05,
-    "corridor_penalty" : 1000,
-    "far_away_penalty" : 5000,
+    "corridor_penalty" : 500,
+    "far_away_penalty" : 1000,
     "docking_pos_bonus" : 1000,
     "docking_vel_bonus" : 1000,
     "docking_pos_bonus_scaling" : 1000,
@@ -39,18 +39,19 @@ reward_parameters = {
 settings = {"random_seed":42,
             "max_action":1,
             "gamma": 0.99,
+            "buffer_size": 1e5,
             "batch_size": 100,              # num of transitions sampled from replay buffer
-            "lr_actor":0.00001,              # learning rate of actor = alpha
-            "lr_critic":0.00001,             # learning rate of critic = beta
-            "exploration_noise":0.2, 
+            "lr_actor":10**(-6),              # learning rate of actor = alpha
+            "lr_critic":10**(-6),             # learning rate of critic = beta
+            "exploration_noise":0.1, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
-            "policy_noise":0.1,             # target policy smoothing noise
-            "noise_clip":0.2,
+            "policy_noise":0.05,             # target policy smoothing noise
+            "noise_clip":0.1,
             "policy_delay":2,               # delayed policy updates parameter
-            "max_episodes":100,             # number of simulations to run
-            "n_iters":100,                   # Number of training iterations per episode
-            "fc1_dim":256,                  # Number of nodes in fully connected linear layer 1
-            "fc2_dim":256,                  # Number of nodes in fully connected linear layer 2
+            "max_episodes":250,             # number of simulations to run
+            "n_iters":100,                   # Number of training iterations per episode (not used anymore)
+            "fc1_dim":128,                  # Number of nodes in fully connected linear layer 1
+            "fc2_dim":128,                  # Number of nodes in fully connected linear layer 2
             "save_each_episode":False,        # Flag to save the models after each epoch instead of only when the results improved
             "approach_direction":"pos_R-bar",# choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
             "reward_type":"simple",          # choose from simple, full or ...
@@ -64,25 +65,25 @@ settings = {"random_seed":42,
 
 pars_to_loop = {"nn_dim" : [64, 128, 256, 512],
                 "batch_size" : [50, 100, 200, 500],
-                "n_iters" : [50, 100, 250],
-                "lr" : [10**(-7), 10**(-6), 10**(-5), 10**(-4), 10**(-3)],
-                "gamma": [0.9, 0.95, 0.99],
+                "lr" : [10**(-7), 10**(-6), 10**(-5), 10**(-4)],
                 "policy_delay": [2,3,4],
-                "exploration_noise" : [0.05, 0.1, 0.2, 0.3],
+                "exploration_noise" : [0.01, 0.05, 0.1, 0.2],
                 "polyak" : [0.9, 0.95, 0.99, 0.995, 0.999],
-                "policy_noise": [0.05, 0.1, 0.2, 0.3],             
+                "policy_noise": [0.01, 0.05, 0.1, 0.2],             
                 "noise_clip": [0.1, 0.2, 0.3, 0.5],
                 }
 
+
+seeds = [41,42,43]
 for par in pars_to_loop.keys():
     values = pars_to_loop[par]
 
-    best_rwd = None
-    val_best_rwd = None
-
-    counter = 0
+    best_mean_rwd = -np.inf
+    val_best_mean_rwd = None
 
     for val in values:
+        mean_higest_rwd = 0
+        
         if par == "nn_dim":
             settings["fc1_dim"] = val
             settings["fc2_dim"] = val
@@ -97,32 +98,30 @@ for par in pars_to_loop.keys():
         save_dir = main_dir+sub_dir+par+"_"+str(val)+"/"
         if (not os.path.isdir(save_dir)):
             os.mkdir(save_dir)
-        trainer = Trainer(settings,save_dir)
-        trainer.start_training()
 
-        if counter == 0:
-            best_rwd = trainer.best_reward
-            val_best_rwd = val
+        for seed in seeds:
+            settings["random_seed"] = seed
+            trainer = Trainer(settings,save_dir)
+            trainer.start_training()
 
-        else:
-            if trainer.best_reward > best_rwd:
-                best_rwd = trainer.best_reward
-                val_best_rwd = val
+            mean_higest_rwd += trainer.best_reward
 
-        counter += 1
+        mean_higest_rwd /= len(seeds)
 
-    print(f"Setting {par} to {val}")
-
+        if mean_higest_rwd > best_mean_rwd:
+            best_mean_rwd = mean_higest_rwd
+            val_best_mean_rwd = val
+    
     if par == "nn_dim":
-        settings["fc1_dim"] = val_best_rwd
-        settings["fc2_dim"] = val_best_rwd
+        settings["fc1_dim"] = val_best_mean_rwd
+        settings["fc2_dim"] = val_best_mean_rwd
 
     elif par == "lr":
-        settings["lr_actor"] = val_best_rwd
-        settings["lr_critic"] = val_best_rwd
+        settings["lr_actor"] = val_best_mean_rwd
+        settings["lr_critic"] = val_best_mean_rwd
 
     else:
-        settings[par] = val_best_rwd
+        settings[par] = val_best_mean_rwd
 
 # ND array not serializable, so must convert to lists for storage
 for port_name in docking_port_locations:

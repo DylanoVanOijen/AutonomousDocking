@@ -165,10 +165,10 @@ class SimSettings:
     # Returns randomized cartesian state
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
-        randomized_state[0] += -10
-        #randomized_state[0] += np.random.uniform(-20,-10)
-        #randomized_state[1] += np.random.uniform(-5, 5)
-        #randomized_state[2] += np.random.uniform(-5, 5)
+        #randomized_state[0] += -10
+        randomized_state[0] += np.random.uniform(-15,-10)
+        randomized_state[1] += np.random.uniform(-3, -1)
+        randomized_state[2] += np.random.uniform(-1, 1)
 
         #self.observation =                 
         return randomized_state
@@ -240,7 +240,7 @@ class ChaserGNC:
             state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
             action = self.agent.compute_action(state)
             #print(state)
-            action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.max_action)
+            action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
             
             self.thrust_magnitude_Xp = action[0]*self.max_impulse

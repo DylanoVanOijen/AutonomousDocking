@@ -28,7 +28,7 @@ class Trainer:
         self.agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
                         state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
                         fc1_dim=settings["fc1_dim"], fc2_dim=settings["fc2_dim"], 
-                        max_action=settings["max_action"], batch_size=settings["batch_size"], 
+                        max_action=settings["max_action"], buffer_size=settings["buffer_size"], batch_size=settings["batch_size"], 
                         gamma=settings["gamma"], polyak=settings["polyak"], 
                         policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
                         policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
@@ -49,10 +49,13 @@ class Trainer:
         self.episode = 0
         self.n_iters = settings["n_iters"]
         self.save_each_episode = settings["save_each_episode"]
+        self.save_folder = save_folder
 
     def start_training(self):
         for episode in range(self.settings["max_episodes"]):
             self.run_episode(episode)
+
+        self.fig.savefig(self.save_folder+"reward_history.png")
 
     def run_episode(self, episode):
         initial_cartesian_state = self.sim_settings.get_randomized_chaser_state()
@@ -63,14 +66,15 @@ class Trainer:
         dynamics_simulator = numerical_simulation.create_dynamics_simulator(
             self.sim_settings.bodies, prop)
         
-        states = dynamics_simulator.state_history
+        #states = dynamics_simulator.state_history
         dep_vars = dynamics_simulator.dependent_variable_history
 
-        states_array = result2array(states)
-        dep_vars_array = result2array(dep_vars)
+        #states_array = result2array(states)
+        #dep_vars_array = result2array(dep_vars)
 
         t2 = time.process_time()
-        self.agent.update(self.n_iters)
+        #self.agent.update(self.n_iters)            # always fixed number of training iterations per simulation
+        self.agent.update(len(dep_vars.keys())-1)   # --> alternative approach
         t3 = time.process_time()
 
         self.total_reward_hist.append(self.agent.episode_reward)
@@ -88,7 +92,7 @@ class Trainer:
 
         self.agent.episode_reward = 0
         
-        #self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
-        #plt.tight_layout()
+        self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
+        plt.tight_layout()
         #plt.draw()
         #plt.pause(0.05)

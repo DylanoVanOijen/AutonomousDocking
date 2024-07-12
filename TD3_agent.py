@@ -75,10 +75,13 @@ class RewardComputer():
         rel_pos = pos_state - self.port_loc
 
         tot_reward = 0.0
-        rwd_position = 25 - np.linalg.norm(rel_pos)  # reward for getting closer
+        rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
         rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
         penal_taking_action = -self.lamda * np.linalg.norm(action)  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
-        tot_reward = rwd_position + rwd_position_heading + penal_taking_action
+        
+        
+        #tot_reward = rwd_position + rwd_position_heading + penal_taking_action
+        tot_reward = rwd_position + penal_taking_action
         
         self.is_docking_flag = self.is_docking(rel_pos)
         self.outside_cone_flag = self.outside_cone(rel_pos)
@@ -134,7 +137,7 @@ class RewardComputer():
 
 class Agent():
     def __init__(self, alpha, beta, state_dim, action_dim, fc1_dim, fc2_dim, max_action,
-                 batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,
+                 buffer_size, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay,
                  exploration_noise, approach_direction, reward_type, reward_parameters, docking_ports, docking_settings,
                  save_folder):
         
@@ -153,7 +156,7 @@ class Agent():
         self.critic_2_target.load_state_dict(self.critic_2.state_dict())
         self.critic_2_optimizer = optim.Adam(self.critic_2.parameters(), lr=beta)
         
-        self.replay_buffer = ReplayBuffer()
+        self.replay_buffer = ReplayBuffer(buffer_size)
 
         self.max_action = max_action
         self.batch_size = batch_size
@@ -169,6 +172,7 @@ class Agent():
         self.reward_parameters = reward_parameters
         self.docking_ports = docking_ports
         self.docking_settings = docking_settings
+        self.action_dim = action_dim
 
         self.reward_computer = RewardComputer(self.approach_direction, self.reward_type, self.reward_parameters, 
                                               self.docking_ports, self.docking_settings)

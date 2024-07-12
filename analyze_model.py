@@ -19,7 +19,7 @@ import numpy as np
 import os
 import time
 
-folder = "./tmp/td3/"
+folder = "./TrainingOutputs/main/"
 
 # Reading the data from the file and converting it back to a dictionary
 with open(folder+'settings.txt', 'r') as convert_file:
@@ -36,13 +36,14 @@ settings["docking_port_locations"] = port_locs
 agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
                         state_dim=settings["observation_space_size"], action_dim=settings["action_space_size"], 
                         fc1_dim=settings["fc1_dim"], fc2_dim=settings["fc2_dim"], 
-                        max_action=settings["max_action"], batch_size=settings["batch_size"], 
+                        max_action=settings["max_action"], buffer_size=settings["buffer_size"], batch_size=settings["batch_size"], 
                         gamma=settings["gamma"], polyak=settings["polyak"], 
                         policy_noise=settings["policy_noise"], noise_clip=settings["noise_clip"], 
                         policy_delay=settings["policy_delay"], exploration_noise=settings["exploration_noise"], 
                         approach_direction=settings["approach_direction"], 
                         reward_type=settings["reward_type"], reward_parameters=settings["reward_parameters"], 
-                        docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"])
+                        docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"],
+                        save_folder=folder)
     
 
 # Sim settings
