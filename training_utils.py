@@ -40,7 +40,7 @@ class Trainer:
         # Sim settings
         self.altitude = 450E3 # meter
         self.target_kepler_orbit = np.array([6378E3+self.altitude, 0, 0, 0, 0, 0])
-        self.sim_settings = SimSettings(self.target_kepler_orbit, self.agent)
+        self.sim_settings = SimSettings(self.target_kepler_orbit, self.agent, settings["reward_type"])
     
         self.moving_reward_hist = []
         self.total_reward_hist = []

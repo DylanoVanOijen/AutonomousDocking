@@ -17,7 +17,7 @@ import numpy as np
 import math
 
 class SimSettings:
-    def __init__(self, target_kepler_orbit, agent):
+    def __init__(self, target_kepler_orbit, agent, reward_type):
         # Vehicle properties
         self.isp = 300      # Seconds
         self.thrust = 1000  # Newton
@@ -25,6 +25,7 @@ class SimSettings:
         self.target_mass = 450e3
 
         self.agent = None
+        self.reward_type = reward_type
         self.target_kepler_orbit = target_kepler_orbit
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
@@ -150,13 +151,16 @@ class SimSettings:
         too_far_termination_settings = propagation_setup.propagator.custom_termination(self.chaser_GNC.agent.reward_computer.too_far_interface)
 
         # Define list of termination settings
-        termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings, too_far_termination_settings]
+        if self.reward_type == "full":
+            termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings, too_far_termination_settings]
+        else:
+            termination_settings_list = [time_termination_settings, is_docking_termination_settings]
 
         # Create hybrid termination settings object that terminates when one of multiple conditions are met
         hybrid_termination_settings = propagation_setup.propagator.hybrid_termination(termination_settings_list,
                                                                                     fulfill_single_condition=True)
         return hybrid_termination_settings
-    
+
     def get_cart_state(self, kepler_state):
         earth_gravitational_parameter = self.bodies.get("Earth").gravitational_parameter
         cart_state = element_conversion.keplerian_to_cartesian(kepler_state, earth_gravitational_parameter)
@@ -239,7 +243,6 @@ class ChaserGNC:
 
             state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
             action = self.agent.compute_action(state)
-            #print(state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
             
@@ -250,7 +253,7 @@ class ChaserGNC:
             #print(action)
             if current_time != 0.0:
                 reward = self.agent.reward_computer.get_reward(state, self.last_action)
-                self.agent.replay_buffer.add((self.last_state, action, reward, state, float(False)))
+                self.agent.replay_buffer.add((self.last_state, self.last_action, reward, state, float(False)))
                 self.agent.episode_reward += reward
                 self.counter += 1
 

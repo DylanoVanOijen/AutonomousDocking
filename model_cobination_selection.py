@@ -1,28 +1,14 @@
-from post_process_utils import *
-from TD3_agent import *
-from sim_utils import *
-
-import json
-
-from sim_utils import *
-from TD3_agent import *
-from post_process_utils import *
-
-# Tudat imports
-from tudatpy.kernel import numerical_simulation
-from tudatpy.data import save2txt
-from tudatpy.util import result2array
+# Module imports
+from training_utils import *
 
 # General imports
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-import time
+import json 
 
-folder = "./TrainingOutputs/main_test/"
+main_dir = "./TrainingOutputs/"
+sub_dir = "hyperparameter_search/"
 
 # Reading the data from the file and converting it back to a dictionary
-with open(folder+'settings.txt', 'r') as convert_file:
+with open(main_dir+sub_dir+'settings.txt', 'r') as convert_file:
     settings = json.load(convert_file)
 
 # Convert docking port locations back from list to NDarray
@@ -31,10 +17,18 @@ for port_name in port_locs:
     port_loc_array = np.array(port_locs[port_name])
     port_locs[port_name] = port_loc_array
 settings["docking_port_locations"] = port_locs
-#settings["exploration_noise"] = 0
 
-torch.manual_seed(settings["random_seed"])
-np.random.seed(settings["random_seed"])  
+save_dir = main_dir+sub_dir+"best/"
+if (not os.path.isdir(save_dir)):
+    os.mkdir(save_dir)
+
+docking_port_locations = {  # w.r.t. to the COM of the Target vehicle in its TNW frame 
+            "pos_R-bar": np.array([-2, -2 , 0])
+        }
+
+trainer = Trainer(settings,save_dir)
+trainer.start_training()
+
 
 # Creating agent
 agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
@@ -47,13 +41,13 @@ agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"],
                         approach_direction=settings["approach_direction"], 
                         reward_type=settings["reward_type"], reward_parameters=settings["reward_parameters"], 
                         docking_ports=settings["docking_port_locations"], docking_settings=settings["docking_settings"],
-                        save_folder=folder)
+                        save_folder=save_dir)
     
 
 # Sim settings
 altitude = 450E3 # meter
 target_kepler_orbit = np.array([6378E3+altitude, 0, 0, 0, 0, 0])
-sim_settings = SimSettings(target_kepler_orbit, agent, settings["reward_type"])
+sim_settings = SimSettings(target_kepler_orbit, agent)
 
 initial_cartesian_state = sim_settings.get_randomized_chaser_state()
 prop = sim_settings.setup_simulation(initial_cartesian_state)
@@ -69,9 +63,6 @@ dep_vars = dynamics_simulator.dependent_variable_history
 states_array = result2array(states)
 dep_vars_array = result2array(dep_vars)
 
-final_reward = agent.episode_reward
-
-print(f"Obtained reward: {final_reward}")
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
 ax1 = plot_trajectory_2d(ax1, states_array, dep_vars_array)
@@ -79,7 +70,7 @@ ax2 = plot_velocity_2d(ax2, states_array, dep_vars_array)
 ax3 = plot_thrust_body_frame(ax3, dep_vars_array)
 ax4 = plot_thrust_TNW_frame(ax4, dep_vars_array)
 fig.tight_layout()
-fig.savefig("./plots/model_analysis.png")
+fig.savefig("./plots/model_analysis_hyperpar.png")
 
 
 port_loc = settings["docking_port_locations"]["pos_R-bar"]
@@ -87,6 +78,6 @@ fig2 = plt.figure()
 ax_3d = fig2.add_subplot(projection='3d')
 ax_3d = plot_trajectory_3d(ax_3d, states_array, dep_vars_array, port_loc)
 fig2.tight_layout()
-fig2.savefig("./plots/trajectory_3D.png")
+fig2.savefig("./plots/trajectory_3D_hyperpar.png")
 
 plt.show()

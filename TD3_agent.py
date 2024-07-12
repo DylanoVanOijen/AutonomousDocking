@@ -14,6 +14,8 @@ class RewardComputer():
         self.outside_cone_flag = False
         self.too_far_flag = False
 
+        self.reward_type = reward_type
+
         self.KOS_size = docking_settings["KOS_size"]
         self.corridor_angle = docking_settings["corridor_angle"]
         self.corridor_base_radius = docking_settings["corridor_base_radius"]
@@ -38,7 +40,6 @@ class RewardComputer():
         offdir_indices = [0, 1, 2] 
 
         if approach_direction == "pos_R-bar":
-            if reward_type == "simple":
                 self.port_loc = self.docking_ports[approach_direction]
 
                 # some logic to determine what elements of position array are needed to compute approach corridor
@@ -77,26 +78,27 @@ class RewardComputer():
         tot_reward = 0.0
         rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
         rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
-        penal_taking_action = -self.lamda * np.linalg.norm(action)  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
-        
+        rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
         
         #tot_reward = rwd_position + rwd_position_heading + penal_taking_action
-        tot_reward = rwd_position + penal_taking_action
+        #tot_reward = rwd_position + penal_taking_action
+        tot_reward = rwd_taking_no_action
         
-        self.is_docking_flag = self.is_docking(rel_pos)
-        self.outside_cone_flag = self.outside_cone(rel_pos)
-        self.too_far_flag = np.linalg.norm(rel_pos) > self.max_distance
+        if self.reward_type == "full":
+            self.is_docking_flag = self.is_docking(rel_pos)
+            self.outside_cone_flag = self.outside_cone(rel_pos)
+            self.too_far_flag = np.linalg.norm(rel_pos) > self.max_distance
 
-        # Big penalty (+ termination) if outside docking corridor
-        if self.outside_cone_flag:
-            tot_reward -= self.corridor_penalty
-            print("Sim should terminate: vehicle outside cone")
+            # Big penalty (+ termination) if outside docking corridor
+            if self.outside_cone_flag:
+                tot_reward -= self.corridor_penalty
+                print("Sim should terminate: vehicle outside cone")
 
 
-        # Big penalty (+ termination) if gets too far away
-        if self.too_far_flag:
-            tot_reward -= self.far_away_penalty
-            print("Sim should terminate: vehicle too far away")
+            # Big penalty (+ termination) if gets too far away
+            if self.too_far_flag:
+                tot_reward -= self.far_away_penalty
+                print("Sim should terminate: vehicle too far away")
 
 
         # Ttermination) if docking position is reached
