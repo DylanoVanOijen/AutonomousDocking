@@ -94,5 +94,5 @@ class Trainer:
         
         self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
         plt.tight_layout()
-        #plt.draw()
-        #plt.pause(0.05)
+        plt.draw()
+        plt.pause(0.05)

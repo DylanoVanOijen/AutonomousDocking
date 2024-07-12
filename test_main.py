@@ -44,18 +44,18 @@ settings = {"random_seed":42,
             "max_action":1,
             "gamma": 0.99,
             "buffer_size": 1e5,
-            "batch_size": 100,              # num of transitions sampled from replay buffer
-            "lr_actor":10**(-3),              # learning rate of actor = alpha
-            "lr_critic":10**(-3),             # learning rate of critic = beta
-            "exploration_noise":0.0, 
+            "batch_size": 500,              # num of transitions sampled from replay buffer
+            "lr_actor":10**(-6),              # learning rate of actor = alpha
+            "lr_critic":10**(-6),             # learning rate of critic = beta
+            "exploration_noise":0.05, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
-            "policy_noise":0.01,             # target policy smoothing noise
-            "noise_clip":0.02,
+            "policy_noise":0.05,             # target policy smoothing noise
+            "noise_clip":0.1,
             "policy_delay":2,               # delayed policy updates parameter
-            "max_episodes":100,             # number of simulations to run
+            "max_episodes":1,             # number of simulations to run
             "n_iters":100,                   # Number of training iterations per episode (not used anymore)
-            "fc1_dim":64,                  # Number of nodes in fully connected linear layer 1
-            "fc2_dim":64,                  # Number of nodes in fully connected linear layer 2
+            "fc1_dim":16,                  # Number of nodes in fully connected linear layer 1
+            "fc2_dim":16,                  # Number of nodes in fully connected linear layer 2
             "save_each_episode":False,        # Flag to save the models after each epoch instead of only when the results improved
             "approach_direction":"pos_R-bar",# choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
             "reward_type":"simple",          # choose from simple, full or ...

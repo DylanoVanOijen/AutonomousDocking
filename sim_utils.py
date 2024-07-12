@@ -30,7 +30,7 @@ class SimSettings:
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
-        self.max_simtime = 2.0*60.0            # 5 minutes
+        self.max_simtime = 1.0*60.0            # 5 minutes
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
@@ -245,6 +245,8 @@ class ChaserGNC:
             action = self.agent.compute_action(state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
+
+            action = np.array([1,1,1])
             
             self.thrust_magnitude_Xp = action[0]*self.max_impulse
             self.thrust_magnitude_Yp = action[1]*self.max_impulse
@@ -253,6 +255,7 @@ class ChaserGNC:
             #print(action)
             if current_time != 0.0:
                 reward = self.agent.reward_computer.get_reward(state, self.last_action)
+                print(reward)
                 self.agent.replay_buffer.add((self.last_state, self.last_action, reward, state, float(False)))
                 self.agent.episode_reward += reward
                 self.counter += 1
