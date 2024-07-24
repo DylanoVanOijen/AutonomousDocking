@@ -79,7 +79,6 @@ class RewardComputer():
         rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
         rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
         rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
-        print(np.linalg.norm(action))
         #tot_reward = rwd_position + rwd_position_heading + rwd_taking_no_action
         #tot_reward = rwd_position + rwd_taking_no_action
         tot_reward = rwd_taking_no_action

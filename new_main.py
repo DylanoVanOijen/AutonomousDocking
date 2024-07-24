@@ -15,6 +15,11 @@ docking_port_locations = {  # w.r.t. to the COM of the Target vehicle in its TNW
             "pos_R-bar": np.array([-2, -2 , 0])
         }
 
+sim_settings = {
+    "step_size": 0.1,
+    "orbit_height" : 100000e3   # m
+}
+
 docking_settings = {
     "KOS_size" : 25,
     "corridor_base_radius": 1,   # meter
@@ -63,7 +68,8 @@ settings = {"random_seed":42,
             "observation_space_size":6,     # pos and vel in TNW frame of Target
             "docking_port_locations":docking_port_locations,
             "docking_settings":docking_settings,
-            "reward_parameters":reward_parameters
+            "reward_parameters":reward_parameters,
+            "sim_settings":sim_settings
             }
 
 # ND array not serializable, so must convert to lists for storage

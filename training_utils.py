@@ -38,7 +38,7 @@ class Trainer:
                         save_folder=save_folder)
     
         # Sim settings
-        self.altitude = 450E3 # meter
+        self.altitude = self.settings["sim_settings"]["orbit_height"]
         self.target_kepler_orbit = np.array([6378E3+self.altitude, 0, 0, 0, 0, 0])
         self.sim_settings = SimSettings(self.target_kepler_orbit, self.agent, settings["reward_type"])
     

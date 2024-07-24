@@ -114,10 +114,12 @@ class SimSettings:
         return integrator_settings
     
     def get_dependent_variables_to_save(self):
+        state_func = self.chaser_GNC.compute_state
+        state_size = 6
         dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth'),
                                        propagation_setup.dependent_variable.inertial_to_body_fixed_rotation_frame('Chaser'),
-                                       propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , 'Chaser', 'Chaser')                  
-                                       ]
+                                       propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , 'Chaser', 'Chaser'),                 
+                                       propagation_setup.dependent_variable.custom_dependent_variable(state_func,state_size)]
         return dependent_variables_to_save
     
     def setup_simulation(self, initial_state):
@@ -230,23 +232,28 @@ class ChaserGNC:
         self.update_GNC( current_time )
         return self.thrust_magnitude_Zp
     
+    def compute_state(self):
+        delta_pos_inertial = self.chaser.position-self.target.position
+        delta_vel_inertial = self.chaser.velocity-self.target.velocity
+
+        inertial_to_TNW_rotation_matrix = frame_conversion.inertial_to_tnw_rotation_matrix(self.target.state, True)
+
+        chaser_pos_TNW = inertial_to_TNW_rotation_matrix@delta_pos_inertial
+        chaser_vel_TNW = inertial_to_TNW_rotation_matrix@delta_vel_inertial
+
+        state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
+        return state
+    
 
     def update_GNC(self, current_time: float):
-        if ( current_time == self.processed_time+self.dt ) :       
-            delta_pos_inertial = self.chaser.position-self.target.position
-            delta_vel_inertial = self.chaser.velocity-self.target.velocity
+        if ( current_time == self.processed_time+self.dt ) :  
+            state = self.compute_state()     
 
-            inertial_to_TNW_rotation_matrix = frame_conversion.inertial_to_tnw_rotation_matrix(self.target.state, True)
-
-            chaser_pos_TNW = inertial_to_TNW_rotation_matrix@delta_pos_inertial
-            chaser_vel_TNW = inertial_to_TNW_rotation_matrix@delta_vel_inertial
-
-            state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
             action = self.agent.compute_action(state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
 
-            action = np.array([1,1,1])
+            action = np.array([0,0,0])
             
             self.thrust_magnitude_Xp = action[0]*self.max_impulse
             self.thrust_magnitude_Yp = action[1]*self.max_impulse

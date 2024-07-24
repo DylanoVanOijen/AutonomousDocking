@@ -51,7 +51,7 @@ agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"],
     
 
 # Sim settings
-altitude = 450E3 # meter
+altitude = settings["sim_settings"]["orbit_height"]
 target_kepler_orbit = np.array([6378E3+altitude, 0, 0, 0, 0, 0])
 sim_settings = SimSettings(target_kepler_orbit, agent, settings["reward_type"])
 
@@ -68,6 +68,7 @@ dep_vars = dynamics_simulator.dependent_variable_history
 
 states_array = result2array(states)
 dep_vars_array = result2array(dep_vars)
+print(dep_vars_array.shape)
 
 final_reward = agent.episode_reward
 
@@ -75,11 +76,20 @@ print(f"Obtained reward: {final_reward}")
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
 ax1 = plot_trajectory_2d(ax1, states_array, dep_vars_array)
+ax1.plot(dep_vars_array[:,0], dep_vars_array[:,22], label = "x dep", color = "cyan", linestyle = "dashed")
+ax1.plot(dep_vars_array[:,0], dep_vars_array[:,23], label = "y dep", color = "magenta", linestyle = "dashed")
+ax1.plot(dep_vars_array[:,0], dep_vars_array[:,24], label = "z dep", color = "yellow", linestyle = "dashed")
+ax1.legend()
 ax2 = plot_velocity_2d(ax2, states_array, dep_vars_array)
+ax2.plot(dep_vars_array[:,0], dep_vars_array[:,25], label = "x dep", color = "cyan", linestyle = "dashed")
+ax2.plot(dep_vars_array[:,0], dep_vars_array[:,26], label = "y dep", color = "magenta", linestyle = "dashed")
+ax2.plot(dep_vars_array[:,0], dep_vars_array[:,27], label = "z dep", color = "yellow", linestyle = "dashed")
+ax2.legend()
 ax3 = plot_thrust_body_frame(ax3, dep_vars_array)
 ax4 = plot_thrust_TNW_frame(ax4, dep_vars_array)
 fig.tight_layout()
 fig.savefig("./plots/model_analysis.png")
+
 
 
 port_loc = settings["docking_port_locations"]["pos_R-bar"]
