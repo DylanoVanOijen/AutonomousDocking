@@ -19,7 +19,8 @@ import numpy as np
 import os
 import time
 
-folder = "./TrainingOutputs/main_test/"
+#folder = "./TrainingOutputs/main_test/"
+folder = "./TrainingOutputs/hyperparameter_combinations/option_18/seed_42/"
 
 # Reading the data from the file and converting it back to a dictionary
 with open(folder+'settings.txt', 'r') as convert_file:
@@ -32,9 +33,15 @@ for port_name in port_locs:
     port_locs[port_name] = port_loc_array
 settings["docking_port_locations"] = port_locs
 #settings["exploration_noise"] = 0
+#settings["noise_clip"] = 0
 
-torch.manual_seed(settings["random_seed"])
-np.random.seed(settings["random_seed"])  
+#torch.manual_seed(settings["random_seed"])
+#np.random.seed(settings["random_seed"])  
+
+torch.manual_seed(42)
+np.random.seed(42)  
+
+print(settings["lr_actor"], settings["batch_size"])
 
 # Creating agent
 agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
@@ -76,14 +83,14 @@ print(f"Obtained reward: {final_reward}")
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
 ax1 = plot_trajectory_2d(ax1, states_array, dep_vars_array)
-ax1.plot(dep_vars_array[:,0], dep_vars_array[:,22], label = "x dep", color = "cyan", linestyle = "dashed")
-ax1.plot(dep_vars_array[:,0], dep_vars_array[:,23], label = "y dep", color = "magenta", linestyle = "dashed")
-ax1.plot(dep_vars_array[:,0], dep_vars_array[:,24], label = "z dep", color = "yellow", linestyle = "dashed")
+#ax1.plot(dep_vars_array[:,0], dep_vars_array[:,22], label = "x dep", color = "cyan", linestyle = "dashed")
+#ax1.plot(dep_vars_array[:,0], dep_vars_array[:,23], label = "y dep", color = "magenta", linestyle = "dashed")
+#ax1.plot(dep_vars_array[:,0], dep_vars_array[:,24], label = "z dep", color = "yellow", linestyle = "dashed")
 ax1.legend()
 ax2 = plot_velocity_2d(ax2, states_array, dep_vars_array)
-ax2.plot(dep_vars_array[:,0], dep_vars_array[:,25], label = "x dep", color = "cyan", linestyle = "dashed")
-ax2.plot(dep_vars_array[:,0], dep_vars_array[:,26], label = "y dep", color = "magenta", linestyle = "dashed")
-ax2.plot(dep_vars_array[:,0], dep_vars_array[:,27], label = "z dep", color = "yellow", linestyle = "dashed")
+#ax2.plot(dep_vars_array[:,0], dep_vars_array[:,25], label = "x dep", color = "cyan", linestyle = "dashed")
+#ax2.plot(dep_vars_array[:,0], dep_vars_array[:,26], label = "y dep", color = "magenta", linestyle = "dashed")
+#ax2.plot(dep_vars_array[:,0], dep_vars_array[:,27], label = "z dep", color = "yellow", linestyle = "dashed")
 ax2.legend()
 ax3 = plot_thrust_body_frame(ax3, dep_vars_array)
 ax4 = plot_thrust_TNW_frame(ax4, dep_vars_array)

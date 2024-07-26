@@ -37,12 +37,12 @@ reward_parameters = {
     "kappa" : 0.1,  # tanh scaling
     "lamda" : 0.1,  # 
     "mu" : 0.05,
-    "corridor_penalty" : 500,
-    "far_away_penalty" : 1000,
-    "docking_pos_bonus" : 1000,
-    "docking_vel_bonus" : 1000,
-    "docking_pos_bonus_scaling" : 1000,
-    "docking_vel_bonus_scaling" : 1000,
+    "corridor_penalty" : 10,
+    "far_away_penalty" : 20,
+    "docking_pos_bonus" : 10,
+    "docking_vel_bonus" : 10,
+    "docking_pos_bonus_scaling" : 10,
+    "docking_vel_bonus_scaling" : 10,
 }
 
 settings = {"random_seed":42,
@@ -63,7 +63,7 @@ settings = {"random_seed":42,
             "fc2_dim":128,                  # Number of nodes in fully connected linear layer 2
             "save_each_episode":False,        # Flag to save the models after each epoch instead of only when the results improved
             "approach_direction":"pos_R-bar",# choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
-            "reward_type":"simple",          # choose from simple, full or ...
+            "reward_type":"full",          # choose from simple, full or ...
             "action_space_size":3,          # for each direction, pos, neg or no thrust
             "observation_space_size":6,     # pos and vel in TNW frame of Target
             "docking_port_locations":docking_port_locations,

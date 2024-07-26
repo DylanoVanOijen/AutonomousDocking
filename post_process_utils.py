@@ -132,6 +132,8 @@ def plot_training_performance(ax, reward):
     ax.set_xlabel("Episode [-]")
     ax.set_ylabel("Reward value [-]")
     ax.set_xlim(0,len(episodes))
+    #y_low = ax.get_ylim()[0]
+    #ax.set_ylim((45,60))
     #ax.set_yscale('log')
     ax.legend()
     ax.grid()

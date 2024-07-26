@@ -176,6 +176,8 @@ class SimSettings:
         randomized_state[1] += np.random.uniform(-3, -1)
         randomized_state[2] += np.random.uniform(-1, 1)
 
+        #print(randomized_state)
+
         #self.observation =                 
         return randomized_state
     
@@ -247,13 +249,14 @@ class ChaserGNC:
 
     def update_GNC(self, current_time: float):
         if ( current_time == self.processed_time+self.dt ) :  
-            state = self.compute_state()     
+            state = self.compute_state() 
+            norm_state = state / self.agent.reward_computer.max_distance
 
-            action = self.agent.compute_action(state)
+            action = self.agent.compute_action(norm_state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
             action = action.clip(-1*self.agent.max_action, self.agent.max_action)
 
-            action = np.array([0,0,0])
+            #action = np.array([0,0,0])
             
             self.thrust_magnitude_Xp = action[0]*self.max_impulse
             self.thrust_magnitude_Yp = action[1]*self.max_impulse
@@ -262,11 +265,11 @@ class ChaserGNC:
             #print(action)
             if current_time != 0.0:
                 reward = self.agent.reward_computer.get_reward(state, self.last_action)
-                print(reward)
-                self.agent.replay_buffer.add((self.last_state, self.last_action, reward, state, float(False)))
+                #print(reward)
+                self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(False)))
                 self.agent.episode_reward += reward
                 self.counter += 1
 
-            self.last_state = state
+            self.last_state = norm_state
             self.last_action = action
             self.processed_time = current_time      

@@ -19,9 +19,11 @@ class ReplayBuffer:
         self.buffer.append(transition)
     
     def sample(self, batch_size):
-        # delete 1/5th of the buffer when full
+        # delete 1/3th of the buffer when full
+        del_frac = 1/4
         if self.size > self.max_size:
-            del self.buffer[0:int(self.size/5)]
+            print(f"Buffer full! Deleting the first {del_frac:.2f}th of the buffer...")
+            del self.buffer[0:int(self.size*del_frac)]
             self.size = len(self.buffer)
         
         indexes = np.random.randint(0, len(self.buffer), size=batch_size)

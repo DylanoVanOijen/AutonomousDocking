@@ -73,8 +73,9 @@ class Trainer:
         #dep_vars_array = result2array(dep_vars)
 
         t2 = time.process_time()
-        #self.agent.update(self.n_iters)            # always fixed number of training iterations per simulation
-        self.agent.update(len(dep_vars.keys())-1)   # --> alternative approach
+        self.agent.update(self.n_iters)            # always fixed number of training iterations per simulation
+        #print(len(dep_vars.keys())-1)
+        #self.agent.update(len(dep_vars.keys())-1)   # --> alternative approach
         t3 = time.process_time()
 
         self.total_reward_hist.append(self.agent.episode_reward)
@@ -94,5 +95,5 @@ class Trainer:
         
         self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
         plt.tight_layout()
-        plt.draw()
-        plt.pause(0.05)
+        #plt.draw()
+        #plt.pause(0.05)

@@ -11,6 +11,11 @@ docking_port_locations = {  # w.r.t. to the COM of the Target vehicle in its TNW
             "pos_R-bar": np.array([-2, -2 , 0])
         }
 
+sim_settings = {
+    "step_size": 1.0,
+    "orbit_height" : 100000e3   # m
+}
+
 docking_settings = {
     "KOS_size" : 25,
     "corridor_base_radius": 1,   # meter
@@ -26,10 +31,10 @@ docking_settings = {
 reward_parameters = {
     "eta" : 10,
     "kappa" : 0.1,  # tanh scaling
-    "lamda" : 0.1,  # 
+    "lamda" : 1.0,  # no action reward scaling
     "mu" : 0.05,
-    "corridor_penalty" : 500,
-    "far_away_penalty" : 1000,
+    "corridor_penalty" : 0,
+    "far_away_penalty" : 0,
     "docking_pos_bonus" : 1000,
     "docking_vel_bonus" : 1000,
     "docking_pos_bonus_scaling" : 1000,
@@ -39,17 +44,17 @@ reward_parameters = {
 settings = {"random_seed":42,
             "max_action":1,
             "gamma": 0.99,
-            "buffer_size": 1e5,
-            "batch_size": 100,              # num of transitions sampled from replay buffer
+            "buffer_size": 3e3,
+            "batch_size": 50,              # num of transitions sampled from replay buffer
             "lr_actor":10**(-6),              # learning rate of actor = alpha
             "lr_critic":10**(-6),             # learning rate of critic = beta
-            "exploration_noise":0.1, 
+            "exploration_noise":0.01, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
-            "policy_noise":0.05,             # target policy smoothing noise
-            "noise_clip":0.1,
+            "policy_noise":0.01,             # target policy smoothing noise
+            "noise_clip":0.2,
             "policy_delay":2,               # delayed policy updates parameter
-            "max_episodes":250,             # number of simulations to run
-            "n_iters":100,                   # Number of training iterations per episode (not used anymore)
+            "max_episodes":500,             # number of simulations to run
+            "n_iters":500,                   # Number of training iterations per episode (not used anymore)
             "fc1_dim":128,                  # Number of nodes in fully connected linear layer 1
             "fc2_dim":128,                  # Number of nodes in fully connected linear layer 2
             "save_each_episode":False,        # Flag to save the models after each epoch instead of only when the results improved
@@ -59,7 +64,8 @@ settings = {"random_seed":42,
             "observation_space_size":6,     # pos and vel in TNW frame of Target
             "docking_port_locations":docking_port_locations,
             "docking_settings":docking_settings,
-            "reward_parameters":reward_parameters
+            "reward_parameters":reward_parameters,
+            "sim_settings":sim_settings
             }
 
 

@@ -48,6 +48,7 @@ class RewardComputer():
                 offdir_indices.remove(self.dir_index) 
                 self.offdir_index_1 = offdir_indices[0]
                 self.offdir_index_2 = offdir_indices[1]
+                self.max_sum_rwd = 3*self.max_distance + self.lamda*np.sqrt(3)
 
     def outside_cone(self, pos):
         if np.linalg.norm(pos) < self.KOS_size:
@@ -76,12 +77,20 @@ class RewardComputer():
         rel_pos = pos_state - self.port_loc
 
         tot_reward = 0.0
-        rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
+        rwd_x = self.max_distance - np.abs(rel_pos[0])
+        rwd_y = self.max_distance - np.abs(rel_pos[1])
+        rwd_z = self.max_distance - np.abs(rel_pos[2])
+        #rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
         rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
-        rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small penalty for taking any action (to reduce fuel usage and prevent oscillating towards target)
+        rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small bonus for not taking any action (to reduce fuel usage and prevent oscillating towards target)
         #tot_reward = rwd_position + rwd_position_heading + rwd_taking_no_action
         #tot_reward = rwd_position + rwd_taking_no_action
-        tot_reward = rwd_taking_no_action
+        #tot_reward = rwd_position
+        tot_reward = (rwd_x+rwd_y+rwd_z+rwd_taking_no_action)
+        #print(rwd_x, rwd_y, rwd_z, rwd_taking_no_action)
+        tot_reward /= self.max_sum_rwd
+        #print(rwd_position, tot_reward)
+        #print(tot_reward)
         
         if self.reward_type == "full":
             self.is_docking_flag = self.is_docking(rel_pos)
