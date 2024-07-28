@@ -9,9 +9,14 @@ pars_to_loop = {"buffer_size" : [20*transitions, 50*transitions, 150*transitions
                 "n_iters": [10,100,1000]
                 }
 
+stat_wiggles = []
+slow_increase = []
+past_peak = []
+peaky_bad = []
+peaky_good = []
 
-options = [2, 4, 9, 11, 13, 18, 19, 20, 22]
-
+# Get all ... options
+print("All following options had stationary wiggle")
 option_counter = 0
 n_options = len(pars_to_loop["buffer_size"])*len(pars_to_loop["batch_size"])*len(pars_to_loop["lr"])*len(pars_to_loop["n_iters"])
 for buff_size in pars_to_loop["buffer_size"]:
@@ -19,6 +24,6 @@ for buff_size in pars_to_loop["buffer_size"]:
         for lr in pars_to_loop["lr"]:
             for n_iters in pars_to_loop["n_iters"]:
                 option_counter += 1
-                if option_counter in options:
+                if option_counter in stat_wiggles:
                     print(f"Option: {option_counter}, buff size: {buff_size}, batch size: {batch_size}, lr: {lr}, n_iters {n_iters}")
 

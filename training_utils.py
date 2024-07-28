@@ -16,7 +16,8 @@ import time
     
 class Trainer:
     def __init__(self, settings:dict, save_folder):
-        self.fig, ((self.ax1))= plt.subplots(1,1, figsize=(8,5))
+        self.fig, ((self.ax1, self.ax2),(self.ax3, self.ax4))= plt.subplots(2,2, figsize=(12,8))
+        #self.fig2, ((self.ax2),(self.ax3))= plt.subplots(2,1, figsize=(8,8))
 
         self.settings = settings
         
@@ -50,6 +51,7 @@ class Trainer:
         self.n_iters = settings["n_iters"]
         self.save_each_episode = settings["save_each_episode"]
         self.save_folder = save_folder
+        self.show_plots = settings["show_plots"]
 
     def start_training(self):
         for episode in range(self.settings["max_episodes"]):
@@ -66,11 +68,11 @@ class Trainer:
         dynamics_simulator = numerical_simulation.create_dynamics_simulator(
             self.sim_settings.bodies, prop)
         
-        #states = dynamics_simulator.state_history
+        states = dynamics_simulator.state_history
         dep_vars = dynamics_simulator.dependent_variable_history
 
-        #states_array = result2array(states)
-        #dep_vars_array = result2array(dep_vars)
+        states_array = result2array(states)
+        dep_vars_array = result2array(dep_vars)
 
         t2 = time.process_time()
         self.agent.update(self.n_iters)            # always fixed number of training iterations per simulation
@@ -94,6 +96,14 @@ class Trainer:
         self.agent.episode_reward = 0
         
         self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
+
         plt.tight_layout()
-        #plt.draw()
-        #plt.pause(0.05)
+        if self.show_plots:
+            self.ax2.cla()
+            self.ax3.cla()
+            self.ax4.cla()
+            self.ax2 = plot_trajectory_2d(self.ax2, states_array, dep_vars_array)
+            self.ax4 = plot_velocity_2d(self.ax4, states_array, dep_vars_array)
+            self.ax3 = plot_thrust_body_frame(self.ax3, dep_vars_array)
+            plt.draw()
+            plt.pause(0.5)

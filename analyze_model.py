@@ -19,8 +19,8 @@ import numpy as np
 import os
 import time
 
-#folder = "./TrainingOutputs/main_test/"
-folder = "./TrainingOutputs/hyperparameter_combinations/option_18/seed_42/"
+folder = "./TrainingOutputs/main_test/"
+#folder = "./TrainingOutputs/hyperparameter_combinations_fast/option_12/seed_42/"
 
 # Reading the data from the file and converting it back to a dictionary
 with open(folder+'settings.txt', 'r') as convert_file:
@@ -32,16 +32,14 @@ for port_name in port_locs:
     port_loc_array = np.array(port_locs[port_name])
     port_locs[port_name] = port_loc_array
 settings["docking_port_locations"] = port_locs
-#settings["exploration_noise"] = 0
-#settings["noise_clip"] = 0
+settings["exploration_noise"] = 0
+settings["noise_clip"] = 0
 
 #torch.manual_seed(settings["random_seed"])
 #np.random.seed(settings["random_seed"])  
 
 torch.manual_seed(42)
 np.random.seed(42)  
-
-print(settings["lr_actor"], settings["batch_size"])
 
 # Creating agent
 agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
@@ -75,7 +73,6 @@ dep_vars = dynamics_simulator.dependent_variable_history
 
 states_array = result2array(states)
 dep_vars_array = result2array(dep_vars)
-print(dep_vars_array.shape)
 
 final_reward = agent.episode_reward
 

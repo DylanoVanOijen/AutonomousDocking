@@ -20,7 +20,7 @@ class SimSettings:
     def __init__(self, target_kepler_orbit, agent, reward_type):
         # Vehicle properties
         self.isp = 300      # Seconds
-        self.thrust = 1000  # Newton
+        self.thrust = 500  # Newton
         self.chaser_mass = 10e3
         self.target_mass = 450e3
 
@@ -30,7 +30,7 @@ class SimSettings:
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
-        self.max_simtime = 1.0*60.0            # 5 minutes
+        self.max_simtime = 2*60.0            # 5 minutes
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
@@ -172,8 +172,8 @@ class SimSettings:
     def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
         #randomized_state[0] += -10
-        randomized_state[0] += np.random.uniform(-15,-10)
-        randomized_state[1] += np.random.uniform(-3, -1)
+        randomized_state[0] += np.random.uniform(-15,-12)
+        randomized_state[1] += np.random.uniform(-1, 1)
         randomized_state[2] += np.random.uniform(-1, 1)
 
         #print(randomized_state)
@@ -250,7 +250,8 @@ class ChaserGNC:
     def update_GNC(self, current_time: float):
         if ( current_time == self.processed_time+self.dt ) :  
             state = self.compute_state() 
-            norm_state = state / self.agent.reward_computer.max_distance
+            #norm_state = state / self.agent.reward_computer.max_distance
+            norm_state = state
 
             action = self.agent.compute_action(norm_state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
@@ -264,9 +265,9 @@ class ChaserGNC:
 
             #print(action)
             if current_time != 0.0:
-                reward = self.agent.reward_computer.get_reward(state, self.last_action)
-                #print(reward)
-                self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(False)))
+                reward, done = self.agent.reward_computer.get_reward(state, self.last_action)
+                #self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(done)))
+                self.agent.replay_buffer.add((norm_state, self.last_action, reward, self.last_state, float(done)))
                 self.agent.episode_reward += reward
                 self.counter += 1
 

@@ -11,8 +11,9 @@ save_dir = main_dir+sub_dir
 if (not os.path.isdir(save_dir)):
     os.mkdir(save_dir)
 
+
 docking_port_locations = {  # w.r.t. to the COM of the Target vehicle in its TNW frame 
-            "pos_R-bar": np.array([-2, -2 , 0])
+            "pos_R-bar": np.array([0, 0, 0])
         }
 
 sim_settings = {
@@ -39,48 +40,64 @@ reward_parameters = {
     "mu" : 0.05,
     "corridor_penalty" : 10,
     "far_away_penalty" : 50,
-    "docking_pos_bonus" : 10,
-    "docking_vel_bonus" : 10,
-    "docking_pos_bonus_scaling" : 10,
-    "docking_vel_bonus_scaling" : 10,
+    "docking_pos_bonus" : 50,
+    "docking_vel_bonus" : 50,
+    "docking_pos_bonus_scaling" : 20,
+    "docking_vel_bonus_scaling" : 20,
 }
 
 settings = {"random_seed":42,
             "max_action":1,
             "gamma": 0.99,
-            "buffer_size": 3e3,
-            "batch_size": 50,              # num of transitions sampled from replay buffer
-            "lr_actor":10**(-6),              # learning rate of actor = alpha
-            "lr_critic":10**(-6),             # learning rate of critic = beta
-            "exploration_noise":0.01, 
+            "buffer_size": 60e3,
+            "batch_size": 500,              # num of transitions sampled from replay buffer
+            "lr_actor":10**(-7),              # learning rate of actor = alpha
+            "lr_critic":10**(-7),             # learning rate of critic = beta
+            "exploration_noise":0.0, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
-            "policy_noise":0.01,             # target policy smoothing noise
-            "noise_clip":0.2,
+            "policy_noise":0.0,             # target policy smoothing noise
+            "noise_clip":0.03,
             "policy_delay":2,               # delayed policy updates parameter
             "max_episodes":500,             # number of simulations to run
-            "n_iters":500,                   # Number of training iterations per episode (not used anymore)
+            "n_iters":100,                   # Number of training iterations per episode (not used anymore)
             "fc1_dim":128,                  # Number of nodes in fully connected linear layer 1
             "fc2_dim":128,                  # Number of nodes in fully connected linear layer 2
             "save_each_episode":False,        # Flag to save the models after each epoch instead of only when the results improved
             "approach_direction":"pos_R-bar",# choose from pos/neg and R, V and Z-bar (dynamics of Z-bar least intersting)
-            "reward_type":"full",          # choose from simple, full or ...
+            "reward_type":"simple",          # choose from simple, full or ...
             "action_space_size":3,          # for each direction, pos, neg or no thrust
             "observation_space_size":6,     # pos and vel in TNW frame of Target
+            "show_plots":True,
             "docking_port_locations":docking_port_locations,
             "docking_settings":docking_settings,
             "reward_parameters":reward_parameters,
             "sim_settings":sim_settings
             }
 
-# ND-array not serializable, so must convert to lists for storage
-for port_name in docking_port_locations:
-    port_loc_list = docking_port_locations[port_name].tolist()
-    docking_port_locations[port_name] = port_loc_list
+load_settings = False
+if load_settings:
+    folder = "./TrainingOutputs/hyperparameter_combinations_fast/option_24/seed_42/"
 
-with open(save_dir+'settings.txt', 'w') as convert_file: 
-     convert_file.write(json.dumps(settings))
+    # Reading the data from the file and converting it back to a dictionary
+    with open(folder+'settings.txt', 'r') as convert_file:
+        settings = json.load(convert_file)
+        settings["show_plots"] = True
+
+    # Convert docking port locations back from list to NDarray
+    port_locs = settings["docking_port_locations"]
+    for port_name in port_locs:
+        port_loc_array = np.array(port_locs[port_name])
+        port_locs[port_name] = port_loc_array
+
+else:
+    # ND-array not serializable, so must convert to lists for storage
+    for port_name in docking_port_locations:
+        port_loc_list = docking_port_locations[port_name].tolist()
+        docking_port_locations[port_name] = port_loc_list
+
+    with open(save_dir+'settings.txt', 'w') as convert_file: 
+        convert_file.write(json.dumps(settings))
+
 
 trainer = Trainer(settings, save_dir)
 trainer.start_training()
-
-

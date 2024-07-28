@@ -12,7 +12,7 @@ if (not os.path.isdir(pre_dir)):
     os.mkdir(pre_dir)
 
 docking_port_locations = {  # w.r.t. to the COM of the Target vehicle in its TNW frame 
-            "pos_R-bar": np.array([-2, -2 , 0])
+            "pos_R-bar": np.array([0, 0 , 0])
         }
 
 sim_settings = {

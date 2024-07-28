@@ -37,10 +37,12 @@ class RewardComputer():
         self.docking_pos_bonus_scaling = reward_parameters["docking_pos_bonus_scaling"]
         self.docking_vel_bonus_scaling = reward_parameters["docking_vel_bonus_scaling"]
 
-        offdir_indices = [0, 1, 2] 
+        offdir_indices = [0, 1, 2]
+        self.is_done = False
 
         if approach_direction == "pos_R-bar":
                 self.port_loc = self.docking_ports[approach_direction]
+                self.port_loc[1] = -15
 
                 # some logic to determine what elements of position array are needed to compute approach corridor
                 self.dir_index = 1
@@ -48,7 +50,8 @@ class RewardComputer():
                 offdir_indices.remove(self.dir_index) 
                 self.offdir_index_1 = offdir_indices[0]
                 self.offdir_index_2 = offdir_indices[1]
-                self.max_sum_rwd = 3*self.max_distance + self.lamda*np.sqrt(3)
+                self.max_pos_sum_rwd = 3*self.max_distance
+
 
     def outside_cone(self, pos):
         if np.linalg.norm(pos) < self.KOS_size:
@@ -81,14 +84,14 @@ class RewardComputer():
         rwd_y = self.max_distance - np.abs(rel_pos[1])
         rwd_z = self.max_distance - np.abs(rel_pos[2])
         #rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
-        rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
-        rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small bonus for not taking any action (to reduce fuel usage and prevent oscillating towards target)
+        #rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
+        #rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small bonus for not taking any action (to reduce fuel usage and prevent oscillating towards target)
         #tot_reward = rwd_position + rwd_position_heading + rwd_taking_no_action
         #tot_reward = rwd_position + rwd_taking_no_action
         #tot_reward = rwd_position
-        tot_reward = (rwd_x+rwd_y+rwd_z+rwd_taking_no_action)
+        tot_reward = (rwd_x+rwd_y+rwd_z)
         #print(rwd_x, rwd_y, rwd_z, rwd_taking_no_action)
-        tot_reward /= self.max_sum_rwd
+        tot_reward /= self.max_pos_sum_rwd
         #print(rwd_position, tot_reward)
         #print(tot_reward)
         
@@ -109,7 +112,7 @@ class RewardComputer():
                 print("Sim should terminate: vehicle too far away")
 
 
-        # Ttermination) if docking position is reached
+        # Termination) if docking position is reached
         if self.is_docking_flag:
             print("Sim should terminate: vehicle is docking!")
 
@@ -121,17 +124,21 @@ class RewardComputer():
 
             # Bonus depending on relative velocity
             docking_vel_rwd = 0
-            docking_vel_rwd += self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_1])
-            docking_vel_rwd += self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_1])
-            docking_vel_rwd += self.docking_vel_bonus - self.docking_vel_bonus_scaling*(np.abs(vel_state[self.dir_index])-self.ideal_dir_vel)
-
+            docking_vel_rwd += (self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_1]))
+            docking_vel_rwd += (self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_2]))
+            docking_vel_rwd += (self.docking_vel_bonus - self.docking_vel_bonus_scaling*(np.abs(vel_state[self.dir_index])-self.ideal_dir_vel))
             tot_reward += docking_vel_rwd
 
         #print("\n New epoch")
         #print(state[0:3], state[3:6], action)
         #print(rwd_position, rwd_position_heading, penal_taking_action)
         
-        return tot_reward
+        if self.too_far_flag or self.outside_cone_flag or self.is_docking_flag:
+            self.is_done = True
+        else:
+            self.is_done = False
+
+        return tot_reward, self.is_done
     
     # Functions to serve merely as interface to tell tudat to terminate simulation if docking occurs
     # or if the vehicle gets outside the cone
