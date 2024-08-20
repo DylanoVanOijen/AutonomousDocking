@@ -16,6 +16,8 @@ import time
     
 class Trainer:
     def __init__(self, settings:dict, save_folder):
+        #self.fig, (self.ax1) = plt.subplots(1,1, figsize=(12,8))
+
         self.fig, ((self.ax1, self.ax2),(self.ax3, self.ax4))= plt.subplots(2,2, figsize=(12,8))
         #self.fig2, ((self.ax2),(self.ax3))= plt.subplots(2,1, figsize=(8,8))
 
@@ -88,22 +90,26 @@ class Trainer:
         if len(self.moving_reward_hist) > 10:
             self.moving_reward_hist = np.delete(self.moving_reward_hist, 0)
 
-        mean = np.mean(self.moving_reward_hist)
-        if episode > 10:
-            if self.difficulty == 0 and mean > 220:
-                print("Now moving to difficulty 1")
-                self.difficulty = 1
-                self.moving_reward_hist = np.array([])
-                #self.agent.decrease_lr(5)
+        mean = 0
+        if len(self.moving_reward_hist) == 10:
+            mean = np.mean(self.moving_reward_hist)
 
-            elif self.difficulty == 1 and mean > 250:
-                print("Now moving to difficulty 2")
-                self.difficulty = 2
-                #self.agent.decrease_lr(2)
+        if self.difficulty == 0 and mean > 650:
+            print("Now moving to difficulty 1")
+            self.difficulty = 1
+            self.moving_reward_hist = np.array([])
+            #self.agent.decrease_lr(5)
 
-            elif self.difficulty == 1 and mean > 250:
-                print("Now moving to difficulty 3")
-                self.difficulty = 3
+        elif self.difficulty == 1 and mean > 650:
+            print("Now moving to difficulty 2")
+            self.difficulty = 2
+            self.moving_reward_hist = np.array([])
+            #self.agent.decrease_lr(2)
+
+        elif self.difficulty == 1 and mean > 650:
+            print("Now moving to difficulty 3")
+            self.difficulty = 3
+            self.moving_reward_hist = np.array([])
 
         if episode == 0:
             self.best_reward = self.agent.episode_reward
@@ -127,6 +133,6 @@ class Trainer:
             self.ax4.cla()
             self.ax2 = plot_trajectory_2d(self.ax2, states_array, dep_vars_array)
             self.ax4 = plot_velocity_2d(self.ax4, states_array, dep_vars_array)
-            self.ax3 = plot_thrust_body_frame(self.ax3, dep_vars_array)
+            self.ax3 = plot_action(self.ax3, dep_vars_array)
             plt.draw()
             plt.pause(0.5)

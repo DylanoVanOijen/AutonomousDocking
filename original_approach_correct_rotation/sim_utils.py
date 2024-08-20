@@ -34,7 +34,7 @@ class SimSettings:
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
-        self.integrator_stepsize = 1.0
+        self.integrator_stepsize = 0.2
         self.propagator = propagation_setup.propagator.encke
         self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize, agent) 
         self.bodies = self.get_environment_settings()
@@ -165,6 +165,8 @@ class SimSettings:
         # Define list of termination settings
         if self.reward_type == "full":
             termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings, too_far_termination_settings]
+            #termination_settings_list = [time_termination_settings, is_docking_termination_settings, too_far_termination_settings]
+
         else:
             termination_settings_list = [time_termination_settings, is_docking_termination_settings]
 
@@ -278,8 +280,8 @@ class ChaserGNC:
     def update_GNC(self, current_time: float):
         if ( current_time == self.processed_time+self.dt ) :  
             state = self.compute_state() 
-            #norm_state = state / self.agent.reward_computer.max_distance
-            norm_state = state
+            norm_state = state / self.agent.reward_computer.max_distance
+            #norm_state = state
 
             action = self.agent.compute_action(norm_state)
             action = action + np.random.normal(0, self.agent.exploration_noise, size=self.agent.action_dim)
@@ -294,8 +296,8 @@ class ChaserGNC:
             #print(action)
             if current_time != 0.0:
                 reward, done = self.agent.reward_computer.get_reward(state, self.last_action)
-                #self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(done)))
-                self.agent.replay_buffer.add((norm_state, self.last_action, reward, self.last_state, float(done)))
+                self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(done)))
+                #self.agent.replay_buffer.add((norm_state, self.last_action, reward, self.last_state, float(done)))
                 self.agent.episode_reward += reward
                 self.counter += 1
 

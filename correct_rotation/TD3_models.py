@@ -65,8 +65,6 @@ class ActorNetwork(nn.Module):
     def forward(self, state):
         a = F.relu(self.l1(state))
         a = F.relu(self.l2(a))
-        #a = F.sigmoid(self.l1(state))
-        #a = F.sigmoid(self.l2(a))
         a = torch.tanh(self.l3(a))
         return a
     
@@ -102,8 +100,6 @@ class CriticNetwork(nn.Module):
         
         q = F.relu(self.l1(state_action))
         q = F.relu(self.l2(q))
-        #q = F.sigmoid(self.l1(state_action))
-        #q = F.sigmoid(self.l2(q))
         q = self.l3(q)
         return q
     

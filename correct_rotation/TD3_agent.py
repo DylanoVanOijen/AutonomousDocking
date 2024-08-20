@@ -81,6 +81,8 @@ class RewardComputer():
         rwd_x = self.max_distance - np.abs(rel_pos[0])
         rwd_y = self.max_distance - np.abs(rel_pos[1])
         rwd_z = self.max_distance - np.abs(rel_pos[2])
+
+        vel_rwd = 2*(1 - 5*(np.abs(vel_state[self.dir_index]-self.ideal_dir_vel*-1*self.is_positive)))
         #rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
         #rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
         #rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small bonus for not taking any action (to reduce fuel usage and prevent oscillating towards target)
@@ -90,6 +92,8 @@ class RewardComputer():
         tot_reward = (rwd_x+rwd_y+rwd_z)
         #print(rwd_x, rwd_y, rwd_z, rwd_taking_no_action)
         tot_reward /= self.max_pos_sum_rwd
+
+        tot_reward += vel_rwd
         #print(rwd_position, tot_reward)
         #print(tot_reward)
         

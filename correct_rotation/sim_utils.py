@@ -20,7 +20,7 @@ class SimSettings:
     def __init__(self, target_kepler_orbit, agent, reward_type):
         # Vehicle properties
         self.isp = 300      # Seconds
-        self.thrust = 500  # Newton
+        self.thrust = 1000 # Newton
         self.chaser_mass = 10e3
         self.target_mass = 450e3
 
@@ -30,11 +30,11 @@ class SimSettings:
         self.simulation_start_epoch = 0.0  # s
         self.global_frame_origin = 'Earth'
         self.global_frame_orientation = 'J2000'
-        self.max_simtime = 2*60.0            # 5 minutes
+        self.max_simtime = 2*60.0            # seconds
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
-        self.integrator_stepsize = 1
+        self.integrator_stepsize = 0.2
         self.propagator = propagation_setup.propagator.encke
         self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize, agent) 
         self.bodies = self.get_environment_settings()
@@ -122,11 +122,13 @@ class SimSettings:
     
     def get_dependent_variables_to_save(self):
         state_func = self.chaser_GNC.compute_state
+        action_func = self.chaser_GNC.get_last_action
         state_size = 12
         dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth'),
                                        propagation_setup.dependent_variable.inertial_to_body_fixed_rotation_frame('Chaser'),
                                        propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , 'Chaser', 'Chaser'),                 
-                                       propagation_setup.dependent_variable.custom_dependent_variable(state_func,state_size)]
+                                       propagation_setup.dependent_variable.custom_dependent_variable(state_func,state_size),
+                                       propagation_setup.dependent_variable.custom_dependent_variable(action_func,3)]
         return dependent_variables_to_save
     
     def setup_simulation(self, initial_state):
@@ -214,7 +216,7 @@ class ChaserGNC:
         self.dt = dt
         self.max_impulse = thrust*dt    # Newton seconds
         self.rel_tol = dt/10
-
+        
         self.reset()
 
     def reset(self):
@@ -268,12 +270,15 @@ class ChaserGNC:
         state = np.concatenate((translational_state, rotational_state))
         return state
     
+    def get_last_action(self):
+        return self.last_action
+    
 
     def update_GNC(self, current_time: float):
         if ( current_time == self.processed_time+self.dt ) :  
             state = self.compute_state() 
-            norm_state = np.concatenate((state[0:6] / self.agent.reward_computer.max_distance, state[6:12] / np.pi))
-
+            #norm_state = np.concatenate((state[0:6] / self.agent.reward_computer.max_distance, state[6:12] / np.pi))
+            norm_state = np.concatenate((state[0:6], state[6:12]))
             action = self.agent.compute_action(norm_state)
             #action = np.array([0,0,0])
             
@@ -281,6 +286,7 @@ class ChaserGNC:
             self.thrust_magnitude_Yp = action[1]*self.max_impulse
             self.thrust_magnitude_Zp = action[2]*self.max_impulse
 
+            
             #print(action)
             if current_time != 0.0:
                 reward, done = self.agent.reward_computer.get_reward(state, self.last_action)
@@ -289,6 +295,7 @@ class ChaserGNC:
                 self.agent.episode_reward += reward
                 self.counter += 1
                 self.agent.learn()
+
 
             self.last_state = norm_state
             self.last_action = action

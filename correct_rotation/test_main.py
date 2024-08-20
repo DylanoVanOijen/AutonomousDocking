@@ -25,7 +25,7 @@ docking_settings = {
     "KOS_size" : 50,
     "corridor_base_radius": 0.5,   # meter
     "corridor_angle" : np.deg2rad(20), 
-    "max_distance" : 100,
+    "max_distance" :25,
     "max_offdir_pos" : 0.2,
     "max_offdir_vel" : 0.01,
     "ideal_dir_vel" : 0.2,
@@ -49,17 +49,17 @@ reward_parameters = {
 settings = {"random_seed":40,
             "max_action":1,
             "gamma": 0.99,
-            "buffer_size": 60000,
-            "batch_size": 1000,              # num of transitions sampled from replay buffer
+            "buffer_size": 100000,
+            "batch_size": 100,              # num of transitions sampled from replay buffer
             "lr_actor":10**(-8),              # learning rate of actor = alpha
             "lr_critic":10**(-8),             # learning rate of critic = beta
-            "exploration_noise":0.01, 
+            "exploration_noise":0.1, 
             "tau":0.005,                 # target policy update parameter (1-tau)
-            "warmup":1000,
-            "policy_noise":0.05,             # target policy smoothing noise
-            "noise_clip":0.1,
+            "warmup":0,
+            "policy_noise":0.1,             # target policy smoothing noise
+            "noise_clip":0.2,
             "policy_delay":2,               # delayed policy updates parameter
-            "max_episodes":250,             # number of simulations to run
+            "max_episodes":100,             # number of simulations to run
             "n_iters":0,                   # Number of training iterations per episode (not used anymore)
             "fc1_dim":400,                  # Number of nodes in fully connected linear layer 1
             "fc2_dim":300,                  # Number of nodes in fully connected linear layer 2

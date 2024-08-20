@@ -21,7 +21,7 @@ sim_settings = {
 
 docking_settings = {
     "KOS_size" : 50,
-    "corridor_base_radius": 1,   # meter
+    "corridor_base_radius": 0.5,   # meter
     "corridor_angle" : np.deg2rad(20), 
     "max_distance" : 50,
     "max_offdir_pos" : 0.2,
@@ -40,8 +40,8 @@ reward_parameters = {
     "far_away_penalty" : 50,
     "docking_pos_bonus" : 50,
     "docking_vel_bonus" : 50,
-    "docking_pos_bonus_scaling" : 20,
-    "docking_vel_bonus_scaling" : 20,
+    "docking_pos_bonus_scaling" : 50/0.5,
+    "docking_vel_bonus_scaling" : 50/0.1,
 }
 
 settings = {"random_seed":40,
@@ -66,7 +66,7 @@ settings = {"random_seed":40,
             "reward_type":"full",          # choose from simple, full or ...
             "action_space_size":3,          # for each direction, pos, neg or no thrust
             "observation_space_size":12,     # pos and vel in TNW frame of Target
-            "show_plots":True,
+            "show_plots":False,
             "docking_port_locations":docking_port_locations,
             "docking_settings":docking_settings,
             "reward_parameters":reward_parameters,
@@ -74,7 +74,7 @@ settings = {"random_seed":40,
             }
 
 pars_to_loop = {"batch_size" : [100, 1000],
-                "lr" : [5*10**(-8), 2*10**(-8), 10**(-8), 5*10**(-9)],
+                "lr" : [10**(-8), 10**(-7), 10**(-6), 10**(-5), 10**(-4)],
                 "exploration_noise": [0.01, 0.02, 0.05, 0.1],
                 "policy_noise" : [0.01, 0.02, 0.05, 0.1]
                 }
@@ -95,28 +95,28 @@ for batch_size in pars_to_loop["batch_size"]:
 
             for pol_noise in pars_to_loop["policy_noise"]:
                 settings["policy_noise"] = pol_noise
-
                 option_counter += 1
                 print(f"Running option {option_counter} out of {n_options}")
 
-                save_dir = main_dir+sub_dir+f"option_{option_counter}/"
-                if (not os.path.isdir(save_dir)):
-                    os.mkdir(save_dir)
+                if option_counter >= 111: 
+                    save_dir = main_dir+sub_dir+f"option_{option_counter}/"
+                    if (not os.path.isdir(save_dir)):
+                        os.mkdir(save_dir)
 
-                for seed in seeds:
-                    settings["random_seed"] = seed
-                    seed_dir = save_dir + f"/seed_{seed}/"
-                    if (not os.path.isdir(seed_dir)):
-                        os.mkdir(seed_dir)
+                    for seed in seeds:
+                        settings["random_seed"] = seed
+                        seed_dir = save_dir + f"/seed_{seed}/"
+                        if (not os.path.isdir(seed_dir)):
+                            os.mkdir(seed_dir)
 
-                    trainer = Trainer(settings,seed_dir)
-                    trainer.start_training()
+                        trainer = Trainer(settings,seed_dir)
+                        trainer.start_training()
 
-                    if option_counter == 1 and seed == seeds[0]:
-                        # ND array not serializable, so must convert to lists for storage
-                        for port_name in docking_port_locations:
-                            port_loc_list = docking_port_locations[port_name].tolist()
-                            docking_port_locations[port_name] = port_loc_list
+                        if option_counter == 111 and seed == seeds[0]:
+                            # ND array not serializable, so must convert to lists for storage
+                            for port_name in docking_port_locations:
+                                port_loc_list = docking_port_locations[port_name].tolist()
+                                docking_port_locations[port_name] = port_loc_list
 
-                    with open(seed_dir+'settings.txt', 'w') as convert_file: 
-                        convert_file.write(json.dumps(settings))
+                        with open(seed_dir+'settings.txt', 'w') as convert_file: 
+                            convert_file.write(json.dumps(settings))

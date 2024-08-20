@@ -50,9 +50,9 @@ settings = {"random_seed":40,
             "max_action":1,
             "gamma": 0.99,
             "buffer_size": 60000,
-            "batch_size": 1000,              # num of transitions sampled from replay buffer
-            "lr_actor":10**(-8),              # learning rate of actor = alpha
-            "lr_critic":10**(-8),             # learning rate of critic = beta
+            "batch_size": 100,              # num of transitions sampled from replay buffer
+            "lr_actor":5*10**(-8),              # learning rate of actor = alpha
+            "lr_critic":5*10**(-8),             # learning rate of critic = beta
             "exploration_noise":0.01, 
             "tau":0.005,                 # target policy update parameter (1-tau)
             "warmup":1000,

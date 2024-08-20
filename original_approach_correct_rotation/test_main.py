@@ -25,7 +25,7 @@ docking_settings = {
     "KOS_size" : 50,
     "corridor_base_radius": 0.5,   # meter
     "corridor_angle" : np.deg2rad(20), 
-    "max_distance" : 100,
+    "max_distance" : 25,
     "max_offdir_pos" : 0.2,
     "max_offdir_vel" : 0.01,
     "ideal_dir_vel" : 0.2,
@@ -53,10 +53,10 @@ settings = {"random_seed":42,
             "batch_size": 1000,              # num of transitions sampled from replay buffer
             "lr_actor":10**(-6),              # learning rate of actor = alpha
             "lr_critic":10**(-6),             # learning rate of critic = beta
-            "exploration_noise":0.05, 
+            "exploration_noise":0.1, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
-            "policy_noise":0.05,             # target policy smoothing noise
-            "noise_clip":0.1,
+            "policy_noise":0.1,             # target policy smoothing noise
+            "noise_clip":0.2,
             "policy_delay":2,               # delayed policy updates parameter
             "max_episodes":500,             # number of simulations to run
             "n_iters":100,                   # Number of training iterations per episode (not used anymore)
