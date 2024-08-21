@@ -184,10 +184,11 @@ class SimSettings:
     def get_randomized_chaser_state(self, difficulty):
         randomized_state = np.copy(self.target_cartesian_orbit)
         #randomized_state[0] += -10
-        #randomized_state[0] += np.random.uniform(-15,-12)
-        #randomized_state[1] += np.random.uniform(-1, 1)
-        #randomized_state[2] += np.random.uniform(-1, 1)
-        if difficulty == 0:
+        randomized_state[0] += np.random.uniform(-10,-9)
+        randomized_state[1] += np.random.uniform(-1, 1)
+        randomized_state[2] += np.random.uniform(-1, 1)
+        
+        """ if difficulty == 0:
             randomized_state[0] += -2
             randomized_state[1] += 0.5
             randomized_state[2] += 0.5
@@ -200,9 +201,9 @@ class SimSettings:
             randomized_state[1] += 2
             randomized_state[2] += 2
         else:
-            randomized_state[0] += np.random.uniform(-15,-12)
+            randomized_state[0] += np.random.uniform(-10, -9)
             randomized_state[1] += np.random.uniform(-1, 1)
-            randomized_state[2] += np.random.uniform(-1, 1)
+            randomized_state[2] += np.random.uniform(-1, 1) """
 
         return randomized_state
     

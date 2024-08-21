@@ -16,7 +16,8 @@ import time
     
 class Trainer:
     def __init__(self, settings:dict, save_folder):
-        self.fig, ((self.ax1, self.ax2),(self.ax3, self.ax4))= plt.subplots(2,2, figsize=(12,8))
+        self.fig, self.ax1 = plt.subplots(1,1, figsize=(7,5))
+        #self.fig, ((self.ax1, self.ax2),(self.ax3, self.ax4))= plt.subplots(2,2, figsize=(12,8))
         #self.fig2, ((self.ax2),(self.ax3))= plt.subplots(2,1, figsize=(8,8))
 
         self.settings = settings
@@ -45,10 +46,11 @@ class Trainer:
     
         self.moving_reward_hist = []
         self.total_reward_hist = []
+        self.mean_reward_hist = []
 
-        self.best_reward = 0.0 
+        self.best_reward = -np.inf 
         self.episode = 0
-        self.difficulty = 0
+        self.difficulty = -1
         self.n_iters = settings["n_iters"]
         self.save_each_episode = settings["save_each_episode"]
         self.save_folder = save_folder
@@ -59,6 +61,7 @@ class Trainer:
             self.run_episode(episode)
 
         self.fig.savefig(self.save_folder+"reward_history.png")
+        plt.close(self.fig)
 
     def run_episode(self, episode):
         initial_cartesian_state = self.sim_settings.get_randomized_chaser_state(self.difficulty)
@@ -87,41 +90,21 @@ class Trainer:
         if len(self.moving_reward_hist) > 10:
             self.moving_reward_hist = np.delete(self.moving_reward_hist, 0)
 
-        mean = 0
-        if len(self.moving_reward_hist) == 10:
-            mean = np.mean(self.moving_reward_hist)
+        mean = np.mean(self.moving_reward_hist)
+        self.mean_reward_hist.append(mean)
 
-        if self.difficulty == 0 and mean > 6000:
-            print("Now moving to difficulty 1")
-            self.difficulty = 1
-            self.moving_reward_hist = np.array([])
-            #self.agent.decrease_lr(5)
-
-        elif self.difficulty == 1 and mean > 6000:
-            print("Now moving to difficulty 2")
-            self.difficulty = 2
-            self.moving_reward_hist = np.array([])
-            #self.agent.decrease_lr(2)
-
-        elif self.difficulty == 1 and mean > 6000:
-            print("Now moving to difficulty 3")
-            self.difficulty = 3
-            self.moving_reward_hist = np.array([])
-
-        if episode == 0:
-            self.best_reward = self.agent.episode_reward
 
         if self.save_each_episode:
             self.agent.save_models()
-        elif not self.save_each_episode and self.agent.episode_reward >= self.best_reward:
+        elif mean >= self.best_reward:
             self.agent.save_models()
-            self.best_reward = self.agent.episode_reward
+            self.best_reward = mean
 
         print(f"Episode: {episode}, Reward = {self.agent.episode_reward:.1f}, proptime = {t2-t1:.1f}, traintime = {t3-t2:.1f}")
 
         self.agent.episode_reward = 0
         
-        self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist)
+        self.ax1 = plot_training_performance(self.ax1, self.total_reward_hist, self.mean_reward_hist)
 
         plt.tight_layout()
         if self.show_plots:

@@ -23,11 +23,11 @@ sim_settings = {
 
 docking_settings = {
     "KOS_size" : 50,
-    "corridor_base_radius": 0.5,   # meter
-    "corridor_angle" : np.deg2rad(89), 
-    "max_distance" : 25,
+    "corridor_base_radius": 1,   # meter
+    "corridor_angle" : np.deg2rad(25), 
+    "max_distance" : 12,
     "max_offdir_pos" : 0.2,
-    "max_offdir_vel" : 0.01,
+    "max_offdir_vel" : 0.1,
     "ideal_dir_vel" : 0.2,
     "min_dir_vel" : 0.1,
     "max_dir_vel" : 0.2  
@@ -40,17 +40,15 @@ reward_parameters = {
     "mu" : 0.05,
     "corridor_penalty" : 100,
     "far_away_penalty" : 100,
-    "docking_pos_bonus" : 50,
-    "docking_vel_bonus" : 50,
-    "docking_pos_bonus_scaling" : 50/0.5,
-    "docking_vel_bonus_scaling" : 50/0.1,
+    "docking_pos_bonus" : 200,
+    "docking_vel_bonus" : 200,
 }
 
 settings = {"random_seed":42,
             "max_action":1,
-            "gamma": 0.99,
-            "buffer_size": 100000,
-            "batch_size": 100,              # num of transitions sampled from replay buffer
+            "gamma": 0.999,
+            "buffer_size": 10000000,
+            "batch_size": 1000,              # num of transitions sampled from replay buffer
             "lr_actor":10**(-3),              # learning rate of actor = alpha
             "lr_critic":10**(-3),             # learning rate of critic = beta
             "exploration_noise":0.1, 

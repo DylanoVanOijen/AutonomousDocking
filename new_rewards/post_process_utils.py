@@ -141,14 +141,13 @@ def plot_trajectory_3d(axis, inertial_states, dep_vars, port_loc):
     return axis
 
 
-def plot_training_performance(ax, reward):
+def plot_training_performance(ax, reward, mean_rewards=None):
     episodes = np.arange(0,len(reward))
-
-    #print(episodes, reward)
-    #print(episodes, moving_avg_reward)
 
     ax.clear()
     ax.plot(episodes, reward, label = "Episode reward")
+    if mean_rewards != None:
+        ax.plot(episodes, mean_rewards, label = "Moving 10 episode average reward")
     ax.set_xlabel("Episode [-]")
     ax.set_ylabel("Reward value [-]")
     ax.set_xlim(0,len(episodes))
@@ -159,3 +158,4 @@ def plot_training_performance(ax, reward):
     ax.grid()
 
     return ax
+
