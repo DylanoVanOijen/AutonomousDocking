@@ -19,8 +19,8 @@ import numpy as np
 import os
 import time
 
-#folder = "./TrainingOutputs/main_test/"
-folder = "./TrainingOutputs/hyperparameter_combinations_option_14/seed_42/"
+folder = "./TrainingOutputs/main_test/"
+#folder = "./TrainingOutputs/hyperparameter_combinations_option_14/seed_42/"
 
 n_samples = 1000
 
@@ -63,20 +63,41 @@ altitude = settings["sim_settings"]["orbit_height"]
 target_kepler_orbit = np.array([6378E3+altitude, 0, 0, 0, 0, 0])
 sim_settings = SimSettings(target_kepler_orbit, agent, settings["reward_type"])
 
-initial_cartesian_state = sim_settings.get_randomized_chaser_state(-1)
-prop = sim_settings.setup_simulation(initial_cartesian_state)
 
 agent.load_models()
 
-dynamics_simulator = numerical_simulation.create_dynamics_simulator(
+arrival_times = []
+off_axis_distances = []
+off_axis_velocities = []
+dir_velocities = []
+
+for i in range(n_samples):
+    if i % (n_samples // 20) == 0:
+        print(f"At {i / n_samples * 100}%")
+
+    initial_cartesian_state = sim_settings.get_randomized_chaser_state(-1)
+    prop = sim_settings.setup_simulation(initial_cartesian_state)
+    dynamics_simulator = numerical_simulation.create_dynamics_simulator(
     sim_settings.bodies, prop)
 
-states = dynamics_simulator.state_history
-dep_vars = dynamics_simulator.dependent_variable_history
+    states = dynamics_simulator.state_history
+    dep_vars = dynamics_simulator.dependent_variable_history
 
-states_array = result2array(states)
-dep_vars_array = result2array(dep_vars)
+    states_array = result2array(states)
+    dep_vars_array = result2array(dep_vars)
 
-final_reward = agent.episode_reward
+    arrival_time, off_axis_distance, off_axis_velocity, dir_velocity = compute_MC_statistics(states_array, dep_vars_array)
 
-for i in range()
+    arrival_times.append(arrival_time)
+    off_axis_distances.append(off_axis_distance)
+    off_axis_velocities.append(off_axis_velocity)
+    dir_velocities.append(dir_velocity)
+
+
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
+ax1 = plot_arrival_times(ax1, arrival_times, 50)
+ax2 = plot_off_axis_distances(ax2, off_axis_distances, 50)
+ax4 = plot_off_axis_velocities(ax4, off_axis_velocities, 50)
+ax3 = plot_dir_axis_velocities(ax3, dir_velocities, 50)
+fig.tight_layout()
+fig.savefig("./plots/MC_analysis.png")

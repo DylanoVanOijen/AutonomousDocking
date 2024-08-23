@@ -42,7 +42,7 @@ reward_parameters = {
     "conditinal_reward_w" : 2.0,
     "corridor_penalty" : 100,
     "far_away_penalty" : 100,
-    "docking_pos_bonus" : 200,
+    "docking_pos_bonus" : 500,
     "docking_vel_bonus" : 200,
 }
 
@@ -89,7 +89,7 @@ for a in pars_to_loop["dir_rate_s"]:
     settings["reward_parameters"]["dir_rate_s"] = a
 
     for b in pars_to_loop["dir_rate_w"]:
-        settings["reward_parameters"]["dir_rate_w"]
+        settings["reward_parameters"]["dir_rate_w"] = b
 
         for c in pars_to_loop["off_dir_rate_w"]:
             settings["reward_parameters"]["off_dir_rate_w"] = c

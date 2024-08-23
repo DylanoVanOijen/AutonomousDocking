@@ -159,3 +159,62 @@ def plot_training_performance(ax, reward, mean_rewards=None):
 
     return ax
 
+def compute_MC_statistics(inertial_states, dep_vars):
+    time = inertial_states[:,0]
+    n_times = len(time)
+
+
+    last_target_state = inertial_states[-1,1:7]
+    last_chaser_state = inertial_states[-1,7:13]
+    last_delta_state_inertial = last_chaser_state - last_target_state
+
+    tnw_to_inertial_array = dep_vars[-1, 1:10]
+    tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(3,3)
+    #print(tnw_to_inertial_matrix, last_delta_state_inertial)
+    delta_pos_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix), last_delta_state_inertial[0:3])]).flatten()
+    #print(delta_pos_tnw)
+    delta_vel_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix), last_delta_state_inertial[3:6])]).flatten()
+
+    arrival_time = time[-1]
+    off_axis_distance = np.sqrt(delta_pos_tnw[0]**2 + delta_pos_tnw[2]**2)
+    off_axis_velocity = np.sqrt(delta_vel_tnw[0]**2 + delta_vel_tnw[2]**2)
+    dir_axis_velocity = delta_vel_tnw[1]
+
+    return arrival_time, off_axis_distance, off_axis_velocity, dir_axis_velocity
+
+
+def plot_arrival_times(ax, times, bins = 25):
+    ax.hist(times, bins)
+    ax.set_xlabel("Arrival time [s]")
+    ax.set_ylabel("Occurance [-]")
+    ax.set_title("Distribution of arrival times at the target")
+    ax.grid()
+
+    return ax
+
+def plot_off_axis_distances(ax, distances, bins = 25):
+    ax.hist(distances, bins)
+    ax.set_xlabel("Off-axis distance [m]")
+    ax.set_ylabel("Occurance [-]")
+    ax.set_title("Distribution of off-axis distances when docking at the target")
+    ax.grid()
+
+    return ax
+
+def plot_off_axis_velocities(ax, velocities, bins = 25):
+    ax.hist(velocities, bins)
+    ax.set_xlabel("Off-axis velocity [m/s]")
+    ax.set_ylabel("Occurance [-]")
+    ax.set_title("Distribution of off-axis velocities when docking at the target")
+    ax.grid()
+
+    return ax
+
+def plot_dir_axis_velocities(ax, velocities, bins = 25):
+    ax.hist(velocities, bins)
+    ax.set_xlabel("Dir-axis velocity [m/s]")
+    ax.set_ylabel("Occurance [-]")
+    ax.set_title("Distribution of dir-axis velocities when docking at the target")
+    ax.grid()
+
+    return ax

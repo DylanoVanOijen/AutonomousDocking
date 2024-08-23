@@ -34,13 +34,15 @@ docking_settings = {
 }
 
 reward_parameters = {
-    "eta" : 10,
-    "kappa" : 0.1,  # tanh scaling
-    "lamda" : 0.1,  # 
-    "mu" : 0.05,
+    "offir_pos_w" : 0.5,
+    "dir_pos_w" : 1.0,
+    "offdir_rate_w" : 0.1,
+    "dir_rate_w" : 1.0,
+    "dir_rate_s" : 1.0,
+    "conditinal_reward_w" : 2.0,
     "corridor_penalty" : 100,
     "far_away_penalty" : 100,
-    "docking_pos_bonus" : 200,
+    "docking_pos_bonus" : 500,
     "docking_vel_bonus" : 200,
 }
 
