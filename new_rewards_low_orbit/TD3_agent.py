@@ -45,7 +45,7 @@ class RewardComputer():
         self.dir_rate_w = reward_parameters["dir_rate_w"]
         self.dir_rate_s = reward_parameters["dir_rate_s"]
 
-        self.conditinal_reward_w = reward_parameters["conditinal_reward_w"]
+        self.conditional_reward_w = reward_parameters["conditional_reward_w"]
 
         self.last_rel_pos = None
 
@@ -54,7 +54,6 @@ class RewardComputer():
 
         if approach_direction == "pos_R-bar":
                 self.port_loc = self.docking_ports[approach_direction]
-                #self.port_loc[1] = -15
 
                 # some logic to determine what elements of position array are needed to compute approach corridor
                 self.dir_index = 1
@@ -122,7 +121,7 @@ class RewardComputer():
         # translation
         for i in range(3):
             if np.abs(rel_pos[i]) - np.abs(self.last_rel_pos[i]) <= 0.0 and np.abs(rel_pos[i]) < 0.4:
-                heading_and_close_reward += self.conditinal_reward_w
+                heading_and_close_reward += self.conditional_reward_w
         # rotation
         #heading_and_close_reward += 3*self.conditinal_reward_w4
 
@@ -136,19 +135,19 @@ class RewardComputer():
             if self.outside_cone_flag:
                 failure_reward += -1*self.corridor_penalty
                 #tot_reward -= self.corridor_penalty
-                print("Sim should terminate: vehicle outside cone")
+                #print("Sim should terminate: vehicle outside cone")
 
 
             # Big penalty (+ termination) if gets too far away
             if self.too_far_flag:
                 failure_reward += -1*self.far_away_penalty
                 #tot_reward -= self.far_away_penalty
-                print("Sim should terminate: vehicle too far away")
+                #print("Sim should terminate: vehicle too far away")
 
         docking_reward = 0.0
         # Termination) if docking position is reached
         if self.is_docking_flag:
-            print("Sim should terminate: vehicle is docking!")
+            #print("Sim should terminate: vehicle is docking!")
             docking_reward += self.docking_pos_bonus
             # Bonus depending on position accuracy
             docking_pos_rwd = 0

@@ -57,7 +57,7 @@ settings = {"random_seed":42,
             "exploration_noise":0.2, 
             "polyak":0.995,                 # target policy update parameter (1-tau)
             "policy_noise":0.2,             # target policy smoothing noise
-            "noise_clip":0.5,
+            "noise_clip":0.4,
             "policy_delay":2,               # delayed policy updates parameter
             "max_episodes":1000,             # number of simulations to run
             "n_iters":100,                   # Number of training iterations per episode (not used anymore)
@@ -77,7 +77,7 @@ settings = {"random_seed":42,
 
 pars_to_loop = {"dir_rate_s" : [0.5, 1.0, 2.0],
                 "dir_rate_w" : [0.5, 1.0, 2.0],
-                "conditinal_reward_w" : [1, 2, 5]
+                "conditional_reward_w" : [1, 2, 5]
                 }
 
 start = 1

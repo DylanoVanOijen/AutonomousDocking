@@ -70,6 +70,7 @@ arrival_times = []
 off_axis_distances = []
 off_axis_velocities = []
 dir_velocities = []
+docking_successes = []
 
 for i in range(n_samples):
     if i % (n_samples // 20) == 0:
@@ -86,18 +87,21 @@ for i in range(n_samples):
     states_array = result2array(states)
     dep_vars_array = result2array(dep_vars)
 
-    arrival_time, off_axis_distance, off_axis_velocity, dir_velocity = compute_MC_statistics(states_array, dep_vars_array)
+    arrival_time, off_axis_distance, off_axis_velocity, dir_velocity, docking_success = compute_MC_statistics(states_array, dep_vars_array, settings)
 
     arrival_times.append(arrival_time)
     off_axis_distances.append(off_axis_distance)
     off_axis_velocities.append(off_axis_velocity)
     dir_velocities.append(dir_velocity)
+    docking_successes.append(docking_success)
 
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
-ax1 = plot_arrival_times(ax1, arrival_times, 50)
-ax2 = plot_off_axis_distances(ax2, off_axis_distances, 50)
-ax4 = plot_off_axis_velocities(ax4, off_axis_velocities, 50)
-ax3 = plot_dir_axis_velocities(ax3, dir_velocities, 50)
-fig.tight_layout()
+ax1 = plot_arrival_times(ax1, arrival_times, docking_successes, 50)
+ax2 = plot_off_axis_distances(ax2, off_axis_distances, docking_successes, 50)
+ax4 = plot_off_axis_velocities(ax4, off_axis_velocities, docking_successes, 50)
+ax3 = plot_dir_axis_velocities(ax3, dir_velocities, docking_successes, 50)
 fig.savefig("./plots/MC_analysis.png")
+
+sucess_rate = sum(docking_successes)/len(docking_successes)*100
+print(f"Option {i}, sucessrate = {sucess_rate:.2f}")

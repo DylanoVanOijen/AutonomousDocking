@@ -16,8 +16,8 @@ import time
     
 class Trainer:
     def __init__(self, settings:dict, save_folder):
-        #self.fig, self.ax1 = plt.subplots(1,1, figsize=(7,5))
-        self.fig, ((self.ax1, self.ax2),(self.ax3, self.ax4))= plt.subplots(2,2, figsize=(12,8))
+        self.fig, self.ax1 = plt.subplots(1,1, figsize=(7,5))
+        #self.fig, ((self.ax1, self.ax2),(self.ax3, self.ax4))= plt.subplots(2,2, figsize=(12,8))
         #self.fig2, ((self.ax2),(self.ax3))= plt.subplots(2,1, figsize=(8,8))
 
         self.settings = settings

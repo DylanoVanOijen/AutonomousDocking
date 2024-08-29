@@ -149,7 +149,7 @@ def plot_training_performance(ax, reward, mean_rewards=None):
     if mean_rewards != None:
         ax.plot(episodes, mean_rewards, label = "Moving 5 episode average return")
     ax.set_xlabel("Episode [-]")
-    ax.set_ylabel("Return value [-]")
+    ax.set_ylabel("Return [-]")
     ax.set_xlim(0,len(episodes))
     #y_low = ax.get_ylim()[0]
     #ax.set_ylim((45,60))
@@ -159,10 +159,52 @@ def plot_training_performance(ax, reward, mean_rewards=None):
 
     return ax
 
-def compute_MC_statistics(inertial_states, dep_vars):
+
+def plot_multi_training_performance(ax, reward, label, mean_rewards=None):
+    episodes = np.arange(0,len(reward))
+
+    #ax.clear()
+    ax.plot(episodes, reward, label = label)
+    if mean_rewards != None:
+        ax.plot(episodes, mean_rewards, label = "Moving 5 episode average return")
+    ax.set_xlabel("Episode [-]")
+    ax.set_ylabel("Return [-]")
+    ax.set_xlim(0,len(episodes))
+    #y_low = ax.get_ylim()[0]
+    #ax.set_ylim((45,60))
+    #ax.set_yscale('log')
+    ax.legend()
+    ax.grid()
+
+    return ax
+
+
+def was_docking(settings, pos):
+    port_loc = None
+    dir_index = None
+    is_positive = None
+
+    if settings["approach_direction"] == "pos_R-bar":
+        port_loc = settings["docking_port_locations"]["pos_R-bar"]
+
+        # some logic to determine what elements of position array are needed to compute approach corridor
+        dir_index = 1
+        is_positive = -1   # = 1 if the approach happens from positive direction in TNW coordinates, else(-1)
+
+    rel_pos = pos - port_loc
+
+    if np.linalg.norm(rel_pos) < settings["docking_settings"]["KOS_size"]:
+        if is_positive*rel_pos[dir_index] < 0:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def compute_MC_statistics(inertial_states, dep_vars, settings):
     time = inertial_states[:,0]
     n_times = len(time)
-
 
     last_target_state = inertial_states[-1,1:7]
     last_chaser_state = inertial_states[-1,7:13]
@@ -180,41 +222,59 @@ def compute_MC_statistics(inertial_states, dep_vars):
     off_axis_velocity = np.sqrt(delta_vel_tnw[0]**2 + delta_vel_tnw[2]**2)
     dir_axis_velocity = delta_vel_tnw[1]
 
-    return arrival_time, off_axis_distance, off_axis_velocity, dir_axis_velocity
+    is_successful = was_docking(settings, delta_pos_tnw[0:3])
+
+    return arrival_time, off_axis_distance, off_axis_velocity, dir_axis_velocity, is_successful
 
 
-def plot_arrival_times(ax, times, bins = 25):
-    ax.hist(times, bins)
+def plot_arrival_times(ax, times, sucess, bins = 25):
+    times_succes = [time for time, flag in zip(times, sucess) if flag]
+    times_unsucces = [time for time, flag in zip(times, sucess) if not flag]
+
+    ax.hist([times_succes, times_unsucces], bins, stacked=True, color = ["green", "red"], label = ["Successful docking", "Failed appoach"])
     ax.set_xlabel("Arrival time [s]")
     ax.set_ylabel("Occurance [-]")
     ax.set_title("Distribution of arrival times at the target")
+    ax.legend()
     ax.grid()
 
     return ax
 
-def plot_off_axis_distances(ax, distances, bins = 25):
-    ax.hist(distances, bins)
+def plot_off_axis_distances(ax, distances, sucess, bins = 25):
+    distances_succes = [time for time, flag in zip(distances, sucess) if flag]
+    distances_unsucces = [time for time, flag in zip(distances, sucess) if not flag]
+
+    ax.hist([distances_succes, distances_unsucces], bins, stacked=True, color = ["green", "red"], label = ["Successful docking", "Failed appoach"])
     ax.set_xlabel("Off-axis distance [m]")
     ax.set_ylabel("Occurance [-]")
     ax.set_title("Distribution of off-axis distances when docking at the target")
+    ax.legend()
     ax.grid()
 
     return ax
 
-def plot_off_axis_velocities(ax, velocities, bins = 25):
-    ax.hist(velocities, bins)
+def plot_off_axis_velocities(ax, velocities, sucess, bins = 25):
+    velocities_succes = [time for time, flag in zip(velocities, sucess) if flag]
+    velocities_unsucces = [time for time, flag in zip(velocities, sucess) if not flag]
+
+    ax.hist([velocities_succes, velocities_unsucces], bins, stacked=True, color = ["green", "red"], label = ["Successful docking", "Failed appoach"])
     ax.set_xlabel("Off-axis velocity [m/s]")
     ax.set_ylabel("Occurance [-]")
     ax.set_title("Distribution of off-axis velocities when docking at the target")
+    ax.legend()
     ax.grid()
 
     return ax
 
-def plot_dir_axis_velocities(ax, velocities, bins = 25):
-    ax.hist(velocities, bins)
+def plot_dir_axis_velocities(ax, velocities, sucess, bins = 25):
+    velocities_succes = [time for time, flag in zip(velocities, sucess) if flag]
+    velocities_unsucces = [time for time, flag in zip(velocities, sucess) if not flag]
+
+    ax.hist([velocities_succes, velocities_unsucces], bins, stacked=True, color = ["green", "red"], label = ["Successful docking", "Failed appoach"])
     ax.set_xlabel("Dir-axis velocity [m/s]")
     ax.set_ylabel("Occurance [-]")
     ax.set_title("Distribution of dir-axis velocities when docking at the target")
+    ax.legend()
     ax.grid()
 
     return ax
