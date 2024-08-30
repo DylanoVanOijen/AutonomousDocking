@@ -160,21 +160,17 @@ def plot_training_performance(ax, reward, mean_rewards=None):
     return ax
 
 
-def plot_multi_training_performance(ax, reward, label, mean_rewards=None):
+def plot_multi_training_performance(ax, reward, label, linestyle,  title_name, mean_rewards=None):
     episodes = np.arange(0,len(reward))
-
-    #ax.clear()
-    ax.plot(episodes, reward, label = label)
+    #ax.plot(episodes, reward, label = label, linestyle = linestyle)
     if mean_rewards != None:
-        ax.plot(episodes, mean_rewards, label = "Moving 5 episode average return")
+        ax.plot(episodes, mean_rewards, label = label, linestyle = linestyle)
     ax.set_xlabel("Episode [-]")
     ax.set_ylabel("Return [-]")
     ax.set_xlim(0,len(episodes))
-    #y_low = ax.get_ylim()[0]
-    #ax.set_ylim((45,60))
-    #ax.set_yscale('log')
+    ax.set_title(title_name)
+    ax.grid(True)         
     ax.legend()
-    ax.grid()
 
     return ax
 

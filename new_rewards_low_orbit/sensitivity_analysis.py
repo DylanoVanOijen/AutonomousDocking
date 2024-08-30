@@ -146,8 +146,14 @@ run_parameter_values(values, par_name)
 values = [0.99, 0.999]
 par_name = "polyak"
 run_parameter_values(values, par_name)
- """
+
 # policy delay
 values = [1, 3]
 par_name = "policy_delay"
+run_parameter_values(values, par_name)
+ """
+
+# seed
+values = [40, 41]
+par_name = "random_seed"
 run_parameter_values(values, par_name)
