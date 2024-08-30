@@ -282,7 +282,7 @@ class Agent():
                 actor_loss.backward()
                 self.actor_optimizer.step()
                 
-                # Polyak averaging update:
+                #   averaging update:
                 for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                     target_param.data.copy_( (self.polyak * target_param.data) + ((1-self.polyak) * param.data))
                 
