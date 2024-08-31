@@ -34,7 +34,7 @@ class SimSettings:
         #self.max_simtime = 100
         self.bodies_to_propagate = ['Target', 'Chaser']
         self.central_bodies = ['Earth', 'Earth']
-        self.integrator_stepsize = 0.2
+        self.integrator_stepsize = 1.0
         self.propagator = propagation_setup.propagator.encke
         self.chaser_GNC = ChaserGNC(self.thrust, self.integrator_stepsize, agent) 
         self.bodies = self.get_environment_settings()
@@ -44,7 +44,7 @@ class SimSettings:
         self.termination_settings = self.get_termination_settings()
         self.target_cartesian_orbit = self.get_cart_state(self.target_kepler_orbit)
         self.chaser_GNC.add_bodies(self.bodies)
-        self.observation = np.zeros(12)
+        self.observation = np.zeros(6)
 
 
     def get_environment_settings(self):
@@ -70,21 +70,14 @@ class SimSettings:
         #                                    environment_setup.rotation_model.aerodynamic_angle_based(
         #                                        'Earth', 'J2000', 'CapsuleFixed', angle_function ))
     
-    def get_target_velocity_vector(self, t):
-        return self.bodies.get_body("Target").velocity
-    
-    def get_free_rotation(self, t):
-        return np.pi
-
-
     def add_chaser_body(self, bodies):
         bodies.create_empty_body('Chaser')
         bodies.get_body('Chaser').set_constant_mass(self.chaser_mass) 
 
                                                                                                         # check orientation of rot model
-        rotation_model_settings = environment_setup.rotation_model.custom_inertial_direction_based(self.get_target_velocity_vector,
-                                                                                                    base_frame = "TargetTNW", target_frame = "ChaserFixed",
-                                                                                                    free_rotation_angle_function = self.get_free_rotation)
+        rotation_model_settings = environment_setup.rotation_model.orbital_state_direction_based('Earth', is_colinear_with_velocity=True, 
+                                                                                                 direction_is_opposite_to_vector=True, base_frame = self.global_frame_orientation,
+                                                                                                 target_frame = "ChaserFixed" )
         environment_setup.add_rotation_model(bodies, 'Chaser', rotation_model_settings )
 
         thrust_magnitude_settings_Xp = propagation_setup.thrust.custom_thrust_magnitude_fixed_isp(self.chaser_GNC.get_thrust_magnitude_Xp, specific_impulse=self.isp)
@@ -122,14 +115,11 @@ class SimSettings:
     
     def get_dependent_variables_to_save(self):
         state_func = self.chaser_GNC.compute_state
-        action_func = self.chaser_GNC.get_last_action
-        state_size = 12
+        state_size = 6
         dependent_variables_to_save = [propagation_setup.dependent_variable.tnw_to_inertial_rotation_matrix('Target', 'Earth'),
                                        propagation_setup.dependent_variable.inertial_to_body_fixed_rotation_frame('Chaser'),
                                        propagation_setup.dependent_variable.single_acceleration(propagation_setup.acceleration.thrust_acceleration_type , 'Chaser', 'Chaser'),                 
-                                       propagation_setup.dependent_variable.custom_dependent_variable(state_func,state_size),
-                                        propagation_setup.dependent_variable.custom_dependent_variable(action_func,3)]
-
+                                       propagation_setup.dependent_variable.custom_dependent_variable(state_func,state_size)]
         return dependent_variables_to_save
     
     def setup_simulation(self, initial_state):
@@ -165,8 +155,6 @@ class SimSettings:
         # Define list of termination settings
         if self.reward_type == "full":
             termination_settings_list = [time_termination_settings, outside_cone_termination_settings, is_docking_termination_settings, too_far_termination_settings]
-            #termination_settings_list = [time_termination_settings, is_docking_termination_settings, too_far_termination_settings]
-
         else:
             termination_settings_list = [time_termination_settings, is_docking_termination_settings]
 
@@ -181,30 +169,16 @@ class SimSettings:
         return cart_state
     
     # Returns randomized cartesian state
-    def get_randomized_chaser_state(self, difficulty):
+    def get_randomized_chaser_state(self):
         randomized_state = np.copy(self.target_cartesian_orbit)
         #randomized_state[0] += -10
-        randomized_state[0] += np.random.uniform(-10,-9)
+        randomized_state[0] += np.random.uniform(-15,-12)
         randomized_state[1] += np.random.uniform(-1, 1)
         randomized_state[2] += np.random.uniform(-1, 1)
-        
-        """ if difficulty == 0:
-            randomized_state[0] += -2
-            randomized_state[1] += 0.5
-            randomized_state[2] += 0.5
-        elif difficulty == 1:
-            randomized_state[0] += -5
-            randomized_state[1] += 1
-            randomized_state[2] += 1
-        elif difficulty == 2:
-            randomized_state[0] += -12
-            randomized_state[1] += 2
-            randomized_state[2] += 2
-        else:
-            randomized_state[0] += np.random.uniform(-10, -9)
-            randomized_state[1] += np.random.uniform(-1, 1)
-            randomized_state[2] += np.random.uniform(-1, 1) """
 
+        #print(randomized_state)
+
+        #self.observation =                 
         return randomized_state
     
 
@@ -269,13 +243,8 @@ class ChaserGNC:
         chaser_pos_TNW = inertial_to_TNW_rotation_matrix@delta_pos_inertial
         chaser_vel_TNW = inertial_to_TNW_rotation_matrix@delta_vel_inertial
 
-        translational_state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
-        rotational_state = np.zeros(6)
-        state = np.concatenate((translational_state, rotational_state))
+        state = np.concatenate((chaser_pos_TNW, chaser_vel_TNW))
         return state
-    
-    def get_last_action(self):
-        return self.last_action
     
 
     def update_GNC(self, current_time: float):
@@ -297,12 +266,10 @@ class ChaserGNC:
             #print(action)
             if current_time != 0.0:
                 reward, done = self.agent.reward_computer.get_reward(state, self.last_action)
-                self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(done)))
-                #self.agent.replay_buffer.add((norm_state, self.last_action, reward, self.last_state, float(done)))
+                #self.agent.replay_buffer.add((self.last_state, self.last_action, reward, norm_state, float(done)))
+                self.agent.replay_buffer.add((norm_state, self.last_action, reward, self.last_state, float(done)))
                 self.agent.episode_reward += reward
                 self.counter += 1
-            else:
-                self.agent.reward_computer.store_first_position_state(state)
 
             self.last_state = norm_state
             self.last_action = action

@@ -25,35 +25,24 @@ class RewardComputer():
         self.min_dir_vel = docking_settings["min_dir_vel"]
         self.max_dir_vel = docking_settings["max_dir_vel"]
         self.ideal_dir_vel = docking_settings["ideal_dir_vel"]
-        self.ideal_docking_vel = docking_settings["ideal_docking_vel"]
 
-        #self.eta = reward_parameters["eta"]
-        #self.kappa = reward_parameters["kappa"]
-        #self.lamda = reward_parameters["lamda"]
-        #self.mu = reward_parameters["mu"]
+        self.eta = reward_parameters["eta"]
+        self.kappa = reward_parameters["kappa"]
+        self.lamda = reward_parameters["lamda"]
+        self.mu = reward_parameters["mu"]
         self.corridor_penalty = reward_parameters["corridor_penalty"]
         self.far_away_penalty = reward_parameters["far_away_penalty"]
         self.docking_pos_bonus = reward_parameters["docking_pos_bonus"]
         self.docking_vel_bonus = reward_parameters["docking_vel_bonus"]
-        #self.docking_pos_bonus_scaling = reward_parameters["docking_pos_bonus_scaling"]
-        #self.docking_vel_bonus_scaling = reward_parameters["docking_vel_bonus_scaling"]
-
-
-        self.offir_pos_w = reward_parameters["offir_pos_w"]
-        self.dir_pos_w = reward_parameters["dir_pos_w"]
-        self.offdir_rate_w = reward_parameters["offdir_rate_w"]
-        self.dir_rate_w = reward_parameters["dir_rate_w"]
-        self.dir_rate_s = reward_parameters["dir_rate_s"]
-
-        self.conditional_reward_w = reward_parameters["conditional_reward_w"]
-
-        self.last_rel_pos = None
+        self.docking_pos_bonus_scaling = reward_parameters["docking_pos_bonus_scaling"]
+        self.docking_vel_bonus_scaling = reward_parameters["docking_vel_bonus_scaling"]
 
         offdir_indices = [0, 1, 2]
         self.is_done = False
 
         if approach_direction == "pos_R-bar":
                 self.port_loc = self.docking_ports[approach_direction]
+                self.port_loc[1] = -15
 
                 # some logic to determine what elements of position array are needed to compute approach corridor
                 self.dir_index = 1
@@ -83,11 +72,6 @@ class RewardComputer():
                 return False
         else:
             return False
-        
-    def store_first_position_state(self, state):
-        pos_state = state[0:3]
-        rel_pos = pos_state - self.port_loc
-        self.last_rel_pos = rel_pos
 
 
     def get_reward(self, state, action):
@@ -96,36 +80,21 @@ class RewardComputer():
         rel_pos = pos_state - self.port_loc
 
         tot_reward = 0.0
-
-        # subreward 1: reward based on current position and attitude
-        state_reward = 0
-        # translation
-        state_reward += (1-self.offir_pos_w*np.abs(rel_pos[self.offdir_index_1]))
-        state_reward += (1-self.dir_pos_w*np.abs(rel_pos[self.dir_index]))
-        state_reward += (1-self.offir_pos_w*np.abs(rel_pos[self.offdir_index_2]))
-        # rotation
-        #state_reward += 3
-
-        # subreward 2: reward based on position and attitude rates
-        rate_reward = 0
-        # translation
-        rate_reward += -self.offdir_rate_w*(np.abs(rel_pos[self.offdir_index_1]) - np.abs(self.last_rel_pos[self.offdir_index_1]))
-        #rate_reward += -self.dir_rate_w*(np.abs(rel_pos[1]) - np.abs(self.last_rel_pos[1]))
-        rate_reward += self.dir_rate_w*(1 - self.dir_rate_s*(np.abs(vel_state[self.dir_index]-self.ideal_dir_vel*-1*self.is_positive)))
-        rate_reward += -self.offdir_rate_w*(np.abs(rel_pos[self.offdir_index_2]) - np.abs(self.last_rel_pos[self.offdir_index_2]))
-        # rotation
-        #rate_reward += 3
-
-        # conditional reward 1: heading to ref while close to ref
-        heading_and_close_reward = 0.0
-        # translation
-        for i in range(3):
-            if np.abs(rel_pos[i]) - np.abs(self.last_rel_pos[i]) <= 0.0 and np.abs(rel_pos[i]) < 0.4:
-                heading_and_close_reward += self.conditional_reward_w
-        # rotation
-        #heading_and_close_reward += 3*self.conditinal_reward_w4
-
-        failure_reward = 0.0
+        rwd_x = self.max_distance - np.abs(rel_pos[0])
+        rwd_y = self.max_distance - np.abs(rel_pos[1])
+        rwd_z = self.max_distance - np.abs(rel_pos[2])
+        #rwd_position = self.max_distance - np.linalg.norm(rel_pos)  # reward for getting closer
+        #rwd_position_heading = -self.eta * np.tanh(self.kappa * np.dot(rel_pos,vel_state)) # reward for moving towards target
+        #rwd_taking_no_action = self.lamda*(np.sqrt(3)-np.linalg.norm(action))  # small bonus for not taking any action (to reduce fuel usage and prevent oscillating towards target)
+        #tot_reward = rwd_position + rwd_position_heading + rwd_taking_no_action
+        #tot_reward = rwd_position + rwd_taking_no_action
+        #tot_reward = rwd_position
+        tot_reward = (rwd_x+rwd_y+rwd_z)
+        #print(rwd_x, rwd_y, rwd_z, rwd_taking_no_action)
+        tot_reward /= self.max_pos_sum_rwd
+        #print(rwd_position, tot_reward)
+        #print(tot_reward)
+        
         if self.reward_type == "full":
             self.is_docking_flag = self.is_docking(rel_pos)
             self.outside_cone_flag = self.outside_cone(rel_pos)
@@ -133,34 +102,32 @@ class RewardComputer():
 
             # Big penalty (+ termination) if outside docking corridor
             if self.outside_cone_flag:
-                failure_reward += -1*self.corridor_penalty
-                #tot_reward -= self.corridor_penalty
-                #print("Sim should terminate: vehicle outside cone")
+                tot_reward -= self.corridor_penalty
+                print("Sim should terminate: vehicle outside cone")
 
 
             # Big penalty (+ termination) if gets too far away
             if self.too_far_flag:
-                failure_reward += -1*self.far_away_penalty
-                #tot_reward -= self.far_away_penalty
-                #print("Sim should terminate: vehicle too far away")
+                tot_reward -= self.far_away_penalty
+                print("Sim should terminate: vehicle too far away")
 
-        docking_reward = 0.0
+
         # Termination) if docking position is reached
         if self.is_docking_flag:
-            #print("Sim should terminate: vehicle is docking!")
-            docking_reward += self.docking_pos_bonus
+            print("Sim should terminate: vehicle is docking!")
+
             # Bonus depending on position accuracy
             docking_pos_rwd = 0
-            distance = np.sqrt(rel_pos[self.offdir_index_1]**2 + rel_pos[self.offdir_index_2]**2)
-            docking_pos_rwd += self.docking_pos_bonus*(1- distance/self.max_offdir_pos)
-            docking_reward += docking_pos_rwd
+            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(rel_pos[self.offdir_index_1])
+            docking_pos_rwd += self.docking_pos_bonus - self.docking_pos_bonus_scaling*np.abs(rel_pos[self.offdir_index_2])
+            tot_reward += docking_pos_rwd
 
             # Bonus depending on relative velocity
             docking_vel_rwd = 0
-            offdir_vel = np.sqrt(vel_state[self.offdir_index_1]**2 + vel_state[self.offdir_index_2]**2)
-            docking_vel_rwd += self.docking_vel_bonus*(1 - offdir_vel/self.max_dir_vel)
-            docking_vel_rwd += self.docking_vel_bonus*(1 - (np.abs(vel_state[self.dir_index]+self.ideal_dir_vel*self.is_positive)/self.ideal_dir_vel))
-            docking_reward += docking_vel_rwd
+            docking_vel_rwd += (self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_1]))
+            docking_vel_rwd += (self.docking_vel_bonus - self.docking_vel_bonus_scaling*np.abs(vel_state[self.offdir_index_2]))
+            docking_vel_rwd += (self.docking_vel_bonus - self.docking_vel_bonus_scaling*(np.abs(vel_state[self.dir_index])-self.ideal_dir_vel))
+            tot_reward += docking_vel_rwd
 
         #print("\n New epoch")
         #print(state[0:3], state[3:6], action)
@@ -170,10 +137,6 @@ class RewardComputer():
             self.is_done = True
         else:
             self.is_done = False
-
-        tot_reward += state_reward + rate_reward + heading_and_close_reward + failure_reward + docking_reward
-        self.last_rel_pos = rel_pos
-        
 
         return tot_reward, self.is_done
     
@@ -282,7 +245,7 @@ class Agent():
                 actor_loss.backward()
                 self.actor_optimizer.step()
                 
-                #   averaging update:
+                # Polyak averaging update:
                 for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                     target_param.data.copy_( (self.polyak * target_param.data) + ((1-self.polyak) * param.data))
                 

@@ -70,8 +70,7 @@ class ActorNetwork(nn.Module):
         torch.save(self.state_dict(), self.checkpoint_file)
 
     def load_model(self):
-        #self.load_state_dict(torch.load(self.checkpoint_file))
-        self.load_state_dict(torch.load(self.checkpoint_file, map_location=torch.device('cpu')))
+        self.load_state_dict(torch.load(self.checkpoint_file))
 
         
 class CriticNetwork(nn.Module):
@@ -104,5 +103,4 @@ class CriticNetwork(nn.Module):
         torch.save(self.state_dict(), self.checkpoint_file)
 
     def load_model(self):
-        #self.load_state_dict(torch.load(self.checkpoint_file))
-        self.load_state_dict(torch.load(self.checkpoint_file, map_location=torch.device('cpu')))
+        self.load_state_dict(torch.load(self.checkpoint_file))
