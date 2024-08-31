@@ -28,9 +28,9 @@ Hello, welcome to the github page for my final project for the TUDelft AE4350 "B
 
 *sim_utils.py* contains all the code simulating the dynamics of the chaser and target vehicles, as well as being an interface between the tudat simulation and the pytorch models.
 
-
-Note: when trying to run a pretrained model, it could happen that the code complains about not being able to load a model when a GPU is (or is not) unexpectely available. This can be fixed by going to the *TD3_models.py* file and swapping the commented line on 73 for 74, and similarly on 107 and 108 to force load to CPU.
-
 *test_main.py* performs training for a single set of parameters. The test in the name is a bit of a misnomer, as for analyzing a single set of settings it is the main script to train a model.
 
 *training_utils.py* contains a class to setup the training process for a given set of parameters, to make life a lot easier...
+
+
+**Note: when trying to run a pretrained model, it could happen that the code complains about not being able to load a model when a GPU is (or is not) unexpectely available. This can be fixed by going to the *TD3_models.py* file and swapping the commented line on 73 for 74, and similarly on 107 and 108 to force load to CPU.**
