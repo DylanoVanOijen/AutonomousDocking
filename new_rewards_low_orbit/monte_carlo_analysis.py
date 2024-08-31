@@ -19,13 +19,14 @@ import numpy as np
 import os
 import time
 
-folder = "./TrainingOutputs/main_test/"
+folder = "./TrainingOutputs/sensitivity_analysis/main/"
+#folder = "./TrainingOutputs/main_test/"
 #folder = "./TrainingOutputs/hyperparameter_combinations_option_14/seed_42/"
 
-n_samples = 1000
+n_samples = 10000
 
 # Reading the data from the file and converting it back to a dictionary
-with open(folder+'settings.txt', 'r') as convert_file:
+with open(folder+'main_settings.txt', 'r') as convert_file:
     settings = json.load(convert_file)
 
 # Convert docking port locations back from list to NDarray
@@ -38,11 +39,11 @@ settings["policy_noise"] = 0
 settings["exploration_noise"] = 0
 settings["noise_clip"] = 0
 
-#torch.manual_seed(settings["random_seed"])
-#np.random.seed(settings["random_seed"])  
+torch.manual_seed(settings["random_seed"])
+np.random.seed(settings["random_seed"])  
 
-torch.manual_seed(42)
-np.random.seed(42)  
+#torch.manual_seed(42)
+#np.random.seed(42)  
 
 # Creating agent
 agent = Agent( alpha=settings["lr_actor"], beta=settings["lr_critic"], 
@@ -96,7 +97,7 @@ for i in range(n_samples):
     docking_successes.append(docking_success)
 
 
-fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(12,10))
 ax1 = plot_arrival_times(ax1, arrival_times, docking_successes, 50)
 ax2 = plot_off_axis_distances(ax2, off_axis_distances, docking_successes, 50)
 ax4 = plot_off_axis_velocities(ax4, off_axis_velocities, docking_successes, 50)

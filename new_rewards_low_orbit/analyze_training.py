@@ -19,11 +19,10 @@ import numpy as np
 import os
 import time
 
-folder = "./TrainingOutputs/main_test/"
-#folder = "./TrainingOutputs/hyperparameter_combinations_option_14/seed_42/"
+folder = "./TrainingOutputs/sensitivity_analysis/main/"
 
 # Reading the data from the file and converting it back to a dictionary
-with open(folder+'settings.txt', 'r') as convert_file:
+with open(folder+'main_settings.txt', 'r') as convert_file:
     settings = json.load(convert_file)
 
 # Convert docking port locations back from list to NDarray
@@ -76,10 +75,23 @@ states_array = result2array(states)
 dep_vars_array = result2array(dep_vars)
 
 final_reward = agent.episode_reward
+port_loc = settings["docking_port_locations"]["pos_R-bar"]
 
 print(f"Obtained reward: {final_reward}")
 
+# make return vs time plot
+main_history = np.loadtxt(folder+"reward_history_data.txt")
+main_mean_history = compute_mean(main_history)
+fig_rew, ax = plt.subplots(1,1, figsize=(8,4))
+ax = plot_training_performance(ax, main_history, main_mean_history)
+fig_rew.tight_layout()
+fig_rew.savefig("./plots/return_history.png")
+
+print("Best reward at episodde ", np.argmax(main_mean_history))
+
+# make 2x2 plot with pos,vel,action and 3d
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(10,8))
+ax_3d_1 = fig.add_subplot(2, 2, 3, projection='3d')
 ax1 = plot_action(ax1, dep_vars_array)
 ax2 = plot_trajectory_2d(ax2, states_array, dep_vars_array)
 #ax1.plot(dep_vars_array[:,0], dep_vars_array[:,22], label = "x dep", color = "cyan", linestyle = "dashed")
@@ -91,16 +103,16 @@ ax4 = plot_velocity_2d(ax4, states_array, dep_vars_array)
 #ax2.plot(dep_vars_array[:,0], dep_vars_array[:,26], label = "y dep", color = "magenta", linestyle = "dashed")
 #ax2.plot(dep_vars_array[:,0], dep_vars_array[:,27], label = "z dep", color = "yellow", linestyle = "dashed")
 ax4.legend()
+ax3.remove()
+ax_3d_1 = plot_trajectory_3d(ax_3d_1, states_array, dep_vars_array, port_loc)
 #ax4 = plot_thrust_TNW_frame(ax4, dep_vars_array)
 fig.tight_layout()
 fig.savefig("./plots/model_analysis.png")
 
 
-
-port_loc = settings["docking_port_locations"]["pos_R-bar"]
 fig2 = plt.figure()
-ax_3d = fig2.add_subplot(projection='3d')
-ax_3d = plot_trajectory_3d(ax_3d, states_array, dep_vars_array, port_loc)
+ax_3d_2 = fig2.add_subplot(projection='3d')
+ax_3d_2 = plot_trajectory_3d(ax_3d_2, states_array, dep_vars_array, port_loc)
 fig2.tight_layout()
 fig2.savefig("./plots/trajectory_3D.png")
 

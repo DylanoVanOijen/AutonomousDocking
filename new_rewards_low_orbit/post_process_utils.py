@@ -12,13 +12,13 @@ def plot_trajectory_2d(axis, inertial_states, dep_vars):
     tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(n_times,3,3)
     delta_pos_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix[i, :, :]), delta_state_inertial[i,0:3]) for i in range(n_times)])
 
-    axis.plot(time, delta_pos_tnw[:,0], label = "T", color = "red", linestyle = "solid")
-    axis.plot(time, delta_pos_tnw[:,1], label = "N", color = "green", linestyle = "solid")
-    axis.plot(time, delta_pos_tnw[:,2], label = "W", color = "blue", linestyle = "solid")
+    axis.plot(time, delta_pos_tnw[:,0], label = "X", color = "red", linestyle = "solid")
+    axis.plot(time, delta_pos_tnw[:,1], label = "Y", color = "green", linestyle = "solid")
+    axis.plot(time, delta_pos_tnw[:,2], label = "Z", color = "blue", linestyle = "solid")
     axis.set_xlim(time[0], time[-1])
-    axis.plot([time[0], time[-1]], [0,0], label = "Port loc T", color = "red", linestyle = "dotted")
-    axis.plot([time[0], time[-1]], [0,0], label = "Port loc N", color = "green", linestyle = "dotted")
-    axis.plot([time[0], time[-1]], [0,0], label = "Port loc W", color = "blue", linestyle = "dotted")
+    axis.plot([time[0], time[-1]], [0,0], label = "Port loc X", color = "red", linestyle = "dotted")
+    axis.plot([time[0], time[-1]], [0,0], label = "Port loc Y", color = "green", linestyle = "dotted")
+    axis.plot([time[0], time[-1]], [0,0], label = "Port loc Z", color = "blue", linestyle = "dotted")
     axis.set_title("Position of chaser in target TNW frame")
     axis.set_xlabel("t-t$_{0}$ [s]")
     axis.set_ylabel("$\Delta r_{i}$ [m]")
@@ -38,9 +38,9 @@ def plot_velocity_2d(axis, inertial_states, dep_vars):
     tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(n_times,3,3)
     delta_vel_tnw = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix[i, :, :]), delta_state_inertial[i,3:6]) for i in range(n_times)])
 
-    axis.plot(time, delta_vel_tnw[:,0], label = "T", color = "red", linestyle = "solid")
-    axis.plot(time, delta_vel_tnw[:,1], label = "N", color = "green", linestyle = "solid")
-    axis.plot(time, delta_vel_tnw[:,2], label = "W", color = "blue", linestyle = "solid")
+    axis.plot(time, delta_vel_tnw[:,0], label = "X", color = "red", linestyle = "solid")
+    axis.plot(time, delta_vel_tnw[:,1], label = "Y", color = "green", linestyle = "solid")
+    axis.plot(time, delta_vel_tnw[:,2], label = "Z", color = "blue", linestyle = "solid")
     axis.set_xlim(time[0], time[-1])
     axis.set_title("Velocity of chaser in target TNW frame")
     axis.set_xlabel("t-t$_{0}$ [s]")
@@ -63,7 +63,7 @@ def plot_action(axis, dep_vars):
     axis.set_ylim(-1,1)
     axis.set_title("Action taken in chaser body frame")
     axis.set_xlabel("t-t$_{0}$ [s]")
-    axis.set_ylabel("a$_{i}$ [-]")
+    axis.set_ylabel("u$_{i}$ [-]")
     axis.grid()
     axis.legend()    
 
@@ -100,9 +100,9 @@ def plot_thrust_TNW_frame(axis, dep_vars):
     tnw_to_inertial_matrix = tnw_to_inertial_array.reshape(n_times,3,3)
     thrust_TNW = np.array([np.matmul(np.transpose(tnw_to_inertial_matrix[i, :, :]), inertial_thrust[i]) for i in range(n_times)])
 
-    axis.plot(time, thrust_TNW[:,0], label = "T", color = "red", linestyle = "solid")
-    axis.plot(time, thrust_TNW[:,1], label = "N", color = "green", linestyle = "solid")
-    axis.plot(time, thrust_TNW[:,2], label = "W", color = "blue", linestyle = "solid")
+    axis.plot(time, thrust_TNW[:,0], label = "X", color = "red", linestyle = "solid")
+    axis.plot(time, thrust_TNW[:,1], label = "Y", color = "green", linestyle = "solid")
+    axis.plot(time, thrust_TNW[:,2], label = "Z", color = "blue", linestyle = "solid")
     axis.set_xlim(time[0], time[-1])
     axis.set_title("Thrust in target TNW frame")
     axis.set_xlabel("t-t$_{0}$ [s]")
@@ -129,9 +129,9 @@ def plot_trajectory_3d(axis, inertial_states, dep_vars, port_loc):
     axis.scatter(delta_pos_tnw[0,0], delta_pos_tnw[0,2], delta_pos_tnw[0,1], color='green', label="Initial position")
     axis.scatter(delta_pos_tnw[-1,0], delta_pos_tnw[-1,2],delta_pos_tnw[-1,1], color='red', label="Final position")
     axis.set_title("Position of chaser in target TNW frame")
-    axis.set_xlabel("T [x]")
-    axis.set_ylabel("W [m]")
-    axis.set_zlabel("N [m]")
+    axis.set_xlabel("X [m]")
+    axis.set_ylabel("Z [m]")
+    axis.set_zlabel("Y [m]")
     axis.set_xlim(-max_value,max_value)
     axis.set_ylim(-max_value,max_value)
     axis.set_zlim(-max_value,max_value)
@@ -147,10 +147,11 @@ def plot_training_performance(ax, reward, mean_rewards=None):
     ax.clear()
     ax.plot(episodes, reward, label = "Episode return")
     if mean_rewards != None:
-        ax.plot(episodes, mean_rewards, label = "Moving 5 episode average return")
+        ax.plot(episodes, mean_rewards, label = "5-episode moving average return")
     ax.set_xlabel("Episode [-]")
     ax.set_ylabel("Return [-]")
     ax.set_xlim(0,len(episodes))
+    ax.set_title("Episode return as function of episodes")
     #y_low = ax.get_ylim()[0]
     #ax.set_ylim((45,60))
     #ax.set_yscale('log')
@@ -274,3 +275,16 @@ def plot_dir_axis_velocities(ax, velocities, sucess, bins = 25):
     ax.grid()
 
     return ax
+
+def compute_mean(reward_history, mean_length=5):
+    mean_reward = []
+    moving_hist = []
+    for i in range(len(reward_history)):
+        moving_hist = np.append(moving_hist, reward_history[i])
+
+        if len(moving_hist) > mean_length:
+            moving_hist = np.delete(moving_hist, 0)
+
+        mean_reward.append(np.mean(moving_hist))
+    
+    return mean_reward

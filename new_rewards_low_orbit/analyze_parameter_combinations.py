@@ -78,20 +78,6 @@ pars = {"random_seed": { "name" : "Random seed",
         }
 
 
-def compute_mean(reward_history, mean_length=5):
-    mean_reward = []
-    moving_hist = []
-    for i in range(len(reward_history)):
-        moving_hist = np.append(moving_hist, reward_history[i])
-
-        if len(moving_hist) > mean_length:
-            moving_hist = np.delete(moving_hist, 0)
-
-        mean_reward.append(np.mean(moving_hist))
-    
-    return mean_reward
-
-
 main_dir = pre_dir + "main/"
 with open(main_dir+'main_settings.txt', 'r') as convert_file:
     main_settings = json.load(convert_file)
@@ -99,7 +85,7 @@ with open(main_dir+'main_settings.txt', 'r') as convert_file:
 main_history = np.loadtxt(main_dir+"reward_history_data.txt")
 main_mean_history = compute_mean(main_history)
 
-fig_all, axes =  plt.subplots(3,3, figsize=(12,14))
+fig_all, axes =  plt.subplots(3,3, figsize=(12,10))
 axes = axes.flatten()
 
 counter = 0
@@ -142,6 +128,13 @@ for parameter in pars.keys():
     fig.clf()
 
     counter += 1
+
+for i in range(9):
+    if i not in [0,3,6]:
+        axes[i].set_ylabel("")
+    if i not in [6,7,8]:
+        axes[i].set_xlabel("")
+
 
 fig_all.suptitle("5-episode moving average return for different parameter values", fontsize=16)
 #fig_all.subplots_adjust(top=0.9)
